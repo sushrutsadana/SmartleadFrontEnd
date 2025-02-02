@@ -7,7 +7,7 @@ export default defineConfig({
     port: 3000,
     host: true,
     proxy: {
-      '/leads': {
+      '/process-emails': {
         target: 'https://smartlead-python-six.vercel.app',
         changeOrigin: true,
         secure: false,
@@ -30,6 +30,11 @@ export default defineConfig({
             });
           });
         }
+      },
+      '/leads': {
+        target: 'https://smartlead-python-six.vercel.app',
+        changeOrigin: true,
+        secure: false
       }
     }
   }

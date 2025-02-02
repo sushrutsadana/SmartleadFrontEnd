@@ -23,7 +23,7 @@ function CheckEmails() {
     try {
       const response = await axios({
         method: 'post',
-        url: '/leads/process-emails',
+        url: '/process-emails',
         data: {
           gmail_credentials: {
             client_id: import.meta.env.VITE_GMAIL_CLIENT_ID,
@@ -37,27 +37,15 @@ function CheckEmails() {
         }
       })
       
-      console.log('Response:', response.data)
-      
-      if (response.data.status === 'success') {
-        toast({
-          title: 'Success',
-          description: response.data.message,
-          status: 'success',
-          duration: 5000,
-          isClosable: true,
-        })
-      } else {
-        throw new Error(response.data.message || 'Failed to process emails')
-      }
-    } catch (error) {
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        config: error.config
+      toast({
+        title: 'Success',
+        description: response.data.message,
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
       })
-      
+    } catch (error) {
+      console.error('Error details:', error.response || error)
       toast({
         title: 'Error Processing Emails',
         description: error.response?.data?.detail || error.message,
