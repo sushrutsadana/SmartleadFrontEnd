@@ -11,9 +11,23 @@
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      },
+      "continue": true
+    },
+    {
       "src": "/api/leads/(.*)/call",
       "dest": "https://smartlead-python-six.vercel.app/leads/$1/call",
-      "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+      "methods": ["POST", "OPTIONS"]
+    },
+    {
+      "src": "/api/leads/(.*)/status",
+      "dest": "https://smartlead-python-six.vercel.app/leads/$1/status",
+      "methods": ["PUT", "OPTIONS"]
     },
     {
       "src": "/api/leads/(.*)",
@@ -24,15 +38,6 @@
       "src": "/api/process-emails",
       "dest": "https://smartlead-python-six.vercel.app/process-emails",
       "methods": ["POST", "OPTIONS"]
-    },
-    {
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "X-Requested-With, Content-Type, Accept"
-      },
-      "src": "/api/(.*)",
-      "continue": true
     },
     {
       "src": "^/assets/(.*)",

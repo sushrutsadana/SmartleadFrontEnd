@@ -44,13 +44,31 @@ export const getAllLeads = async () => {
 
 // Lead Actions
 export const makeCall = async (leadId) => {
-  const response = await fetch(`${API_BASE}/leads/${leadId}/call`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
+  try {
+    console.log('Making call to:', `${API_BASE}/leads/${leadId}/call`);
+    const response = await fetch(`${API_BASE}/leads/${leadId}/call`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error('Call API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData
+      });
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
     }
-  });
-  return response.json();
+    
+    return response.json();
+  } catch (error) {
+    console.error('Call API Error:', error);
+    throw error;
+  }
 };
 
 export const sendEmail = async (leadId) => {

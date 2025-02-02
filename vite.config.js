@@ -17,18 +17,10 @@ export default defineConfig({
             console.log('proxy error', err);
           });
           proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Sending Request:', {
-              method: req.method,
-              url: req.url,
-              headers: proxyReq.getHeaders()
-            });
+            console.log('Sending Request:', req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('Received Response:', {
-              statusCode: proxyRes.statusCode,
-              url: req.url,
-              headers: proxyRes.headers
-            });
+            console.log('Received Response:', proxyRes.statusCode, req.url);
           });
         }
       },
