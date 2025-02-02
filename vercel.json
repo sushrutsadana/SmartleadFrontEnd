@@ -11,6 +11,16 @@
   ],
   "routes": [
     {
+      "src": "/api/leads/.*",
+      "dest": "https://smartlead-python-six.vercel.app/leads/$1",
+      "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    },
+    {
+      "src": "/api/process-emails",
+      "dest": "https://smartlead-python-six.vercel.app/process-emails",
+      "methods": ["POST", "OPTIONS"]
+    },
+    {
       "src": "^/assets/(.*)",
       "dest": "/assets/$1"
     },

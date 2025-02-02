@@ -7,10 +7,11 @@ export default defineConfig({
     port: 3000,
     host: true,
     proxy: {
-      '/process-emails': {
+      '/api': {
         target: 'https://smartlead-python-six.vercel.app',
         changeOrigin: true,
         secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ''),
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, _res) => {
             console.log('proxy error', err);
@@ -31,11 +32,27 @@ export default defineConfig({
           });
         }
       },
+      '/process-emails': {
+        target: 'https://smartlead-python-six.vercel.app',
+        changeOrigin: true,
+        secure: false,
+      },
       '/leads': {
         target: 'https://smartlead-python-six.vercel.app',
         changeOrigin: true,
-        secure: false
+        secure: false,
       }
+    }
+  },
+  build: {
+    outDir: 'dist',
+  },
+  experimental: {
+    renderBuiltUrl(filename) {
+      if (filename.includes('favicon.ico')) {
+        return '/favicon.ico'
+      }
+      return filename
     }
   }
 })
