@@ -31,11 +31,14 @@ import {
   FiMessageSquare,
   FiClock
 } from 'react-icons/fi'
+import axios from 'axios'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_KEY
 )
+
+const API_URL = import.meta.env.VITE_API_URL
 
 function LeadCard() {
   const { id } = useParams()
@@ -98,41 +101,46 @@ function LeadCard() {
     onOpen()
   }
 
-  const confirmStatusUpdate = async () => {
-    setIsUpdating(true)
+  const updateLeadStatus = async (newStatus) => {
+    setIsUpdating(true);
     try {
-      const { error } = await supabase
-        .from('leads')
-        .update({ status: selectedStatus })
-        .eq('id', id)
-
-      if (error) throw error
-
+      const response = await axios.put(`${API_URL}/leads/${id}/status`, {
+        status: newStatus
+      });
+      
       setLead(prev => ({
         ...prev,
-        status: selectedStatus
-      }))
+        status: newStatus
+      }));
 
       toast({
-        title: 'Status updated',
-        description: `Lead status updated to ${selectedStatus}`,
+        title: 'Status Updated',
+        description: `Lead status updated to ${newStatus}`,
         status: 'success',
         duration: 3000,
         isClosable: true,
-      })
+      });
     } catch (error) {
       toast({
-        title: 'Error updating status',
-        description: error.message,
+        title: 'Error Updating Status',
+        description: error.response?.data?.detail || error.message,
         status: 'error',
         duration: 5000,
         isClosable: true,
-      })
+      });
     } finally {
-      setIsUpdating(false)
-      onClose()
+      setIsUpdating(false);
     }
-  }
+  };
+
+  const getLeadActivity = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/leads/${id}/activity`);
+      // Handle activity data
+    } catch (error) {
+      console.error('Error fetching activity:', error);
+    }
+  };
 
   if (loading) {
     return <Box p={6}>Loading...</Box>
@@ -280,7 +288,7 @@ function LeadCard() {
               </Button>
               <Button 
                 colorScheme="blue" 
-                onClick={confirmStatusUpdate} 
+                onClick={() => updateLeadStatus(selectedStatus)} 
                 ml={3}
                 isLoading={isUpdating}
               >

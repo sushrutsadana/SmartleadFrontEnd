@@ -18,6 +18,8 @@ import {
 } from '@chakra-ui/react'
 import axios from 'axios'
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 function CreateLead() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
@@ -44,7 +46,7 @@ function CreateLead() {
     setIsSubmitting(true)
 
     try {
-      const response = await axios.post('/leads', formData)
+      const response = await axios.post(`${API_URL}/leads`, formData)
       
       toast({
         title: 'Lead Created',

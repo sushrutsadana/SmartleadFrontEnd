@@ -23,6 +23,8 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_KEY
 )
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 function MakeCall() {
   const [isLoading, setIsLoading] = useState(false)
   const [leads, setLeads] = useState([])
@@ -67,17 +69,16 @@ function MakeCall() {
 
     setIsLoading(true)
     try {
-      const response = await axios.post(`/leads/${selectedLead}/call`)
+      const response = await axios.post(`${API_URL}/leads/${selectedLead}/call`)
       
       toast({
         title: 'Call Initiated',
-        description: response.data.message || 'Call has been initiated successfully',
+        description: response.data.message,
         status: 'success',
         duration: 5000,
         isClosable: true,
       })
     } catch (error) {
-      console.error('Call error:', error.response || error)
       toast({
         title: 'Error Making Call',
         description: error.response?.data?.detail || error.message,

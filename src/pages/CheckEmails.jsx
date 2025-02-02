@@ -14,6 +14,8 @@ import {
 } from '@chakra-ui/react'
 import axios from 'axios'
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 function CheckEmails() {
   const [isProcessing, setIsProcessing] = useState(false)
   const toast = useToast()
@@ -21,31 +23,16 @@ function CheckEmails() {
   const processEmails = async () => {
     setIsProcessing(true)
     try {
-      const response = await axios({
-        method: 'post',
-        url: '/process-emails',
-        data: {
-          gmail_credentials: {
-            client_id: import.meta.env.VITE_GMAIL_CLIENT_ID,
-            client_secret: import.meta.env.VITE_GMAIL_CLIENT_SECRET,
-            refresh_token: import.meta.env.VITE_GMAIL_REFRESH_TOKEN,
-            user_email: import.meta.env.VITE_GMAIL_USER
-          }
-        },
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
+      const response = await axios.post(`${API_URL}/process-emails`);
       
       toast({
-        title: 'Success',
+        title: 'Emails Processed',
         description: response.data.message,
         status: 'success',
         duration: 5000,
         isClosable: true,
       })
     } catch (error) {
-      console.error('Error details:', error.response || error)
       toast({
         title: 'Error Processing Emails',
         description: error.response?.data?.detail || error.message,
