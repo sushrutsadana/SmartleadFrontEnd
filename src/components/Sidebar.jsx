@@ -1,119 +1,132 @@
-import { Box, VStack, Button, Text, Divider, Heading } from '@chakra-ui/react'
+import { Box, VStack, HStack, Text, Icon, Divider } from '@chakra-ui/react'
 import { Link, useLocation } from 'react-router-dom'
+import { 
+  FiHome, 
+  FiMail, 
+  FiMessageSquare, 
+  FiPhone,
+  FiDatabase,
+  FiUsers,
+  FiSearch,
+  FiUserPlus
+} from 'react-icons/fi'
 
 function Sidebar() {
   const location = useLocation()
+
   const isActive = (path) => location.pathname === path
+
+  const NavItem = ({ icon, children, to }) => (
+    <Link to={to}>
+      <HStack
+        px={4}
+        py={3}
+        spacing={3}
+        borderRadius="lg"
+        transition="all 0.2s"
+        bg={isActive(to) ? 'whiteAlpha.200' : 'transparent'}
+        color={isActive(to) ? 'white' : 'whiteAlpha.800'}
+        _hover={{ bg: 'whiteAlpha.200', color: 'white' }}
+      >
+        <Icon as={icon} boxSize={5} />
+        <Text fontSize="sm" fontWeight="500">
+          {children}
+        </Text>
+      </HStack>
+    </Link>
+  )
+
+  const SectionTitle = ({ children }) => (
+    <Text
+      px={4}
+      py={2}
+      fontSize="xs"
+      fontWeight="600"
+      textTransform="uppercase"
+      color="whiteAlpha.600"
+      letterSpacing="wider"
+    >
+      {children}
+    </Text>
+  )
 
   return (
     <Box
       w="280px"
       h="100vh"
+      position="fixed"
       bgGradient="linear(to-b, #00838F, #2B3990)"
-      p={6}
-      position="relative"
-      boxShadow="lg"
+      color="white"
+      py={6}
     >
-      <VStack spacing={8} align="stretch">
+      {/* Logo */}
+      <Box px={6} mb={8}>
+        <Text fontSize="2xl" fontWeight="bold">
+          SmartLead CRM
+        </Text>
+        <Text fontSize="sm" color="whiteAlpha.700">
+          AI-Driven Lead Mastery
+        </Text>
+      </Box>
+
+      <VStack spacing={6} align="stretch">
+        {/* Main Navigation */}
         <Box>
-          <Heading 
-            size="lg" 
-            color="white" 
-            fontFamily="Poppins"
-            fontWeight="600"
-            letterSpacing="tight"
-          >
-            SmartLead
-            <Text as="span" fontSize="md" opacity={0.8}> CRM</Text>
-          </Heading>
-          <Text 
-            fontSize="sm" 
-            color="white"
-            fontWeight="500" 
-            mt={1}
-            opacity={0.9}
-          >
-            AI-Driven Lead Mastery
-          </Text>
+          <NavItem icon={FiHome} to="/dashboard">
+            Dashboard
+          </NavItem>
         </Box>
-        
-        <Divider opacity={0.1} />
-        
-        <VStack spacing={3}>
-          <Link to="/database" style={{ width: '100%' }}>
-            <Button 
-              w="full" 
-              variant={isActive('/database') ? 'solid' : 'ghost'}
-              leftIcon={<DatabaseIcon />}
-              size="lg"
-              bg={isActive('/database') ? 'white' : 'transparent'}
-              color={isActive('/database') ? 'brand.blue' : 'white'}
-              _hover={{
-                bg: 'whiteAlpha.200',
-                transform: 'translateY(-1px)'
-              }}
-            >
-              Database
-            </Button>
-          </Link>
-          
-          <Link to="/emails" style={{ width: '100%' }}>
-            <Button 
-              w="full" 
-              variant={isActive('/emails') ? 'solid' : 'ghost'}
-              size="lg"
-              bg={isActive('/emails') ? 'white' : 'transparent'}
-              color={isActive('/emails') ? 'brand.blue' : 'white'}
-              _hover={{
-                bg: 'whiteAlpha.200',
-                transform: 'translateY(-1px)'
-              }}
-            >
-              Check Emails
-            </Button>
-          </Link>
-          
-          <Link to="/calls" style={{ width: '100%' }}>
-            <Button 
-              w="full" 
-              variant={isActive('/calls') ? 'solid' : 'ghost'}
-              size="lg"
-              bg={isActive('/calls') ? 'white' : 'transparent'}
-              color={isActive('/calls') ? 'brand.blue' : 'white'}
-              _hover={{
-                bg: 'whiteAlpha.200',
-                transform: 'translateY(-1px)'
-              }}
-            >
-              Make Call
-            </Button>
-          </Link>
-          
-          <Link to="/leads/new" style={{ width: '100%' }}>
-            <Button 
-              w="full" 
-              variant={isActive('/leads/new') ? 'solid' : 'ghost'}
-              size="lg"
-              bg={isActive('/leads/new') ? 'white' : 'transparent'}
-              color={isActive('/leads/new') ? 'brand.blue' : 'white'}
-              _hover={{
-                bg: 'whiteAlpha.200',
-                transform: 'translateY(-1px)'
-              }}
-            >
-              Create Lead
-            </Button>
-          </Link>
-        </VStack>
+
+        <Divider borderColor="whiteAlpha.200" />
+
+        {/* Find New Leads */}
+        <Box>
+          <SectionTitle>Find New Leads</SectionTitle>
+          <VStack spacing={1} align="stretch">
+            <NavItem icon={FiMail} to="/emails">
+              Search Emails
+            </NavItem>
+            <NavItem icon={FiMessageSquare} to="/whatsapp">
+              Search WhatsApp
+            </NavItem>
+            <NavItem icon={FiSearch} to="/social">
+              Search Social Media
+            </NavItem>
+            <NavItem icon={FiUserPlus} to="/leads/new">
+              Create New Lead
+            </NavItem>
+          </VStack>
+        </Box>
+
+        <Divider borderColor="whiteAlpha.200" />
+
+        {/* Convert Leads Section */}
+        <Box>
+          <SectionTitle>Convert Leads</SectionTitle>
+          <VStack spacing={1} align="stretch">
+            <NavItem icon={FiPhone} to="/calls">
+              Make Calls
+            </NavItem>
+            <NavItem icon={FiMail} to="/send-emails">
+              Send Emails
+            </NavItem>
+            <NavItem icon={FiMessageSquare} to="/send-whatsapp">
+              Send WhatsApp
+            </NavItem>
+          </VStack>
+        </Box>
+
+        <Divider borderColor="whiteAlpha.200" />
+
+        {/* Database */}
+        <Box>
+          <NavItem icon={FiDatabase} to="/database">
+            Database
+          </NavItem>
+        </Box>
       </VStack>
     </Box>
   )
 }
 
-const DatabaseIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
-  </svg>
-)
-
-export default Sidebar 
+export default Sidebar

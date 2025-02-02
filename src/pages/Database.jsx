@@ -17,6 +17,8 @@ import {
   Badge
 } from '@chakra-ui/react'
 import { createClient } from '@supabase/supabase-js'
+import { useNavigate } from 'react-router-dom'
+import { FiEdit2 } from 'react-icons/fi'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -27,6 +29,7 @@ function Database() {
   const [leads, setLeads] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const toast = useToast()
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetchLeads()
@@ -74,6 +77,10 @@ function Database() {
   const handleDelete = (leadId) => {
     console.log('Delete lead:', leadId)
     // Implement delete functionality
+  }
+
+  const handleViewLead = (leadId) => {
+    navigate(`/leads/${leadId}`)
   }
 
   return (
@@ -134,6 +141,14 @@ function Database() {
                   </Td>
                   <Td>
                     <HStack spacing={2}>
+                      <Button
+                        size="sm"
+                        colorScheme="blue"
+                        leftIcon={<FiEdit2 />}
+                        onClick={() => handleViewLead(lead.id)}
+                      >
+                        View
+                      </Button>
                       <Button 
                         size="sm" 
                         colorScheme="blue"

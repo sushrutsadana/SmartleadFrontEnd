@@ -1,34 +1,45 @@
 import { createBrowserRouter } from 'react-router-dom'
 import Layout from './components/Layout'
+import Dashboard from './pages/Dashboard'
 import Database from './pages/Database'
 import CheckEmails from './pages/CheckEmails'
-import MakeCall from './pages/MakeCall'
 import CreateLead from './pages/CreateLead'
+import MakeCall from './pages/MakeCall'
+import LeadCard from './pages/LeadCard'
+
 
 export const router = createBrowserRouter([
   {
-    path: "/",
+    path: '/',
     element: <Layout />,
     children: [
       {
-        path: "/",
+        path: '/',
+        element: <Dashboard />,
+      },
+      {
+        path: '/dashboard',
+        element: <Dashboard />,
+      },
+      {
+        path: '/database',
         element: <Database />,
       },
       {
-        path: "/database",
-        element: <Database />,
-      },
-      {
-        path: "/emails",
+        path: '/emails',
         element: <CheckEmails />,
       },
       {
-        path: "/calls",
+        path: '/leads/new',
+        element: <CreateLead />,
+      },
+      {
+        path: '/calls',
         element: <MakeCall />,
       },
       {
-        path: "/leads/new",
-        element: <CreateLead />,
+        path: '/leads/:id',
+        element: <LeadCard />,
       },
     ],
   },
