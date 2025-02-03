@@ -27,6 +27,10 @@ import { FiCalendar, FiClock, FiEdit2, FiSend } from 'react-icons/fi'
 import axios from 'axios'
 import DatePicker from 'react-datepicker'
 import "react-datepicker/dist/react-datepicker.css"
+import PageHeader from '../components/PageHeader'
+import Card from '../components/Card'
+import { brandColors, spacing, typography } from '../theme/constants'
+import PageContainer from '../components/PageContainer'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -301,255 +305,217 @@ function SendEmails() {
   }
 
   return (
-    <Box p={8} bg="gray.50" minH="100vh">
-      <VStack spacing={8} align="stretch" maxW="1600px" mx="auto">
-        {/* Header */}
-        <HStack justify="space-between" mb={6}>
-          <VStack align="start" spacing={2}>
-            <Text fontSize="3xl" fontWeight="bold" color="brand.teal">
-              Send Emails
+    <PageContainer>
+      <PageHeader
+        title="Send Emails"
+        description="Select a lead and compose personalized emails"
+      />
+
+      <Grid templateColumns="350px 1fr" gap={12}>
+        {/* Left Panel */}
+        <VStack align="stretch" spacing={6}>
+          <Card>
+            <Text {...typography.heading.section} mb={4}>
+              Filter Leads
             </Text>
-            <Text color="gray.600" fontSize="lg">
-              Select a lead and compose personalized emails
+            <HStack spacing={3} wrap="wrap">
+              {['all', 'new', 'contacted', 'qualified', 'lost', 'won'].map((status) => (
+                <Button
+                  key={status}
+                  size="md"
+                  variant={selectedStatus === status ? 'solid' : 'outline'}
+                  colorScheme={status === 'all' ? 'gray' : getStatusColor(status)}
+                  onClick={() => setSelectedStatus(status)}
+                  px={4}
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </Button>
+              ))}
+            </HStack>
+          </Card>
+
+          <Card flex={1} maxH="calc(100vh - 380px)" overflowY="auto">
+            <Text {...typography.heading.section} mb={4}>
+              Select Lead
             </Text>
-          </VStack>
-        </HStack>
-
-        <Grid templateColumns="350px 1fr" gap={12}>
-          {/* Left Panel - Lead Selection */}
-          <VStack align="stretch" spacing={6}>
-            {/* Filter Section */}
-            <Box
-              bg="white"
-              p={6}
-              borderRadius="xl"
-              boxShadow="sm"
-              border="1px solid"
-              borderColor="gray.100"
-            >
-              <Text fontSize="lg" fontWeight="600" mb={4}>
-                Filter Leads
-              </Text>
-              <HStack spacing={3} wrap="wrap">
-                {['all', 'new', 'contacted', 'qualified', 'lost', 'won'].map((status) => (
-                  <Button
-                    key={status}
-                    size="md"
-                    variant={selectedStatus === status ? 'solid' : 'outline'}
-                    colorScheme={status === 'all' ? 'gray' : getStatusColor(status)}
-                    onClick={() => setSelectedStatus(status)}
-                    px={4}
-                  >
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                  </Button>
-                ))}
-              </HStack>
-            </Box>
-
-            {/* Leads List */}
-            <Box
-              bg="white"
-              p={6}
-              borderRadius="xl"
-              boxShadow="sm"
-              border="1px solid"
-              borderColor="gray.100"
-              flex={1}
-              overflowY="auto"
-              maxH="calc(100vh - 320px)"
-            >
-              <Text fontSize="lg" fontWeight="600" mb={4}>
-                Select Lead
-              </Text>
-              {isLoading ? (
-                <VStack py={8}>
-                  <Spinner color="brand.teal" />
-                  <Text color="gray.500">Loading leads...</Text>
-                </VStack>
-              ) : (
-                <List spacing={3}>
-                  {leads
-                    .filter(lead => selectedStatus === 'all' || lead.status === selectedStatus)
-                    .map((lead) => (
-                      <ListItem
-                        key={lead.id}
-                        p={4}
-                        borderRadius="lg"
-                        cursor="pointer"
-                        bg={selectedLead?.id === lead.id ? 'blue.50' : 'white'}
-                        _hover={{ bg: 'gray.50' }}
-                        onClick={() => handleLeadSelect(lead)}
-                        border="1px solid"
-                        borderColor={selectedLead?.id === lead.id ? 'blue.200' : 'gray.100'}
-                        transition="all 0.2s"
-                      >
-                        <VStack align="stretch" spacing={2}>
-                          <HStack justify="space-between">
-                            <Text fontWeight="600">
-                              {lead.first_name} {lead.last_name}
-                            </Text>
-                            <Badge colorScheme={getStatusColor(lead.status)}>
-                              {lead.status}
-                            </Badge>
-                          </HStack>
-                          <HStack spacing={3} color="gray.600" fontSize="sm">
-                            <Text>{lead.email}</Text>
-                            {lead.company_name && (
-                              <>
-                                <Text>•</Text>
-                                <Text>{lead.company_name}</Text>
-                              </>
-                            )}
-                          </HStack>
-                        </VStack>
-                      </ListItem>
-                    ))}
-                </List>
-              )}
-            </Box>
-          </VStack>
-
-          {/* Right Panel - Email Composer */}
-          <Box
-            bg="white"
-            p={12}
-            borderRadius="xl"
-            boxShadow="sm"
-            border="1px solid"
-            borderColor="gray.100"
-            minH="calc(100vh - 220px)"
-            maxW="1200px"
-            w="full"
-          >
-            {selectedLead ? (
-              <VStack spacing={10} align="stretch">
-                <HStack justify="space-between" pb={4}>
-                  <VStack align="start" spacing={2}>
-                    <Text fontSize="2xl" fontWeight="600">
-                      Compose Email
-                    </Text>
-                    <Text color="gray.600" fontSize="md">
-                      Writing to: {selectedLead.first_name} {selectedLead.last_name}
-                    </Text>
-                  </VStack>
-                  <Button
-                    leftIcon={<FiEdit2 />}
-                    variant="ghost"
-                    size="lg"
-                    onClick={() => generateEmailDraft(selectedLead)}
-                    isLoading={isGenerating}
-                  >
-                    Regenerate
-                  </Button>
-                </HStack>
-
-                <FormControl>
-                  <FormLabel fontSize="md">Subject</FormLabel>
-                  <Input
-                    value={emailSubject}
-                    onChange={(e) => setEmailSubject(e.target.value)}
-                    placeholder="Email subject"
-                    size="lg"
-                    h="56px"
-                    fontSize="md"
-                    px={4}
-                  />
-                </FormControl>
-
-                <FormControl flex={1}>
-                  <FormLabel fontSize="md">Body</FormLabel>
-                  <Textarea
-                    value={emailBody}
-                    onChange={(e) => setEmailBody(e.target.value)}
-                    placeholder="Email body"
-                    size="lg"
-                    minH="500px"
-                    p={6}
-                    fontSize="md"
-                    lineHeight="tall"
-                    resize="vertical"
-                  />
-                </FormControl>
-
-                <HStack justify="space-between" pt={8}>
-                  <HStack spacing={4}>
-                    <Button
-                      leftIcon={<FiSend />}
-                      colorScheme="blue"
-                      size="lg"
-                      onClick={() => sendEmail()}
-                      isLoading={isSending}
-                      px={8}
-                      h="56px"
-                      fontSize="md"
-                    >
-                      Send Now
-                    </Button>
-
-                    <Popover placement="top">
-                      <PopoverTrigger>
-                        <Button
-                          leftIcon={<FiCalendar />}
-                          size="lg"
-                          variant="outline"
-                          h="56px"
-                          px={8}
-                          fontSize="md"
-                        >
-                          Schedule Send
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent p={6} w="320px">
-                        <PopoverBody>
-                          <VStack spacing={6}>
-                            <FormControl>
-                              <FormLabel fontSize="sm">Select Date and Time</FormLabel>
-                              <DatePicker
-                                selected={scheduleDate}
-                                onChange={setScheduleDate}
-                                showTimeSelect
-                                dateFormat="MMMM d, yyyy h:mm aa"
-                                minDate={new Date()}
-                                customInput={
-                                  <Input
-                                    size="lg"
-                                    h="48px"
-                                    cursor="pointer"
-                                  />
-                                }
-                              />
-                            </FormControl>
-                            <Button
-                              w="full"
-                              colorScheme="blue"
-                              size="lg"
-                              h="48px"
-                              onClick={() => sendEmail(scheduleDate.toISOString())}
-                              isDisabled={!scheduleDate}
-                            >
-                              Schedule
-                            </Button>
-                          </VStack>
-                        </PopoverBody>
-                      </PopoverContent>
-                    </Popover>
-                  </HStack>
-                </HStack>
+            {isLoading ? (
+              <VStack py={8}>
+                <Spinner color="brand.teal" />
+                <Text color="gray.500">Loading leads...</Text>
               </VStack>
             ) : (
-              <VStack py={16} spacing={4}>
-                <Text color="gray.500" fontSize="lg">
-                  Select a lead to compose an email
-                </Text>
-                <Text color="gray.400">
-                  Choose from the list on the left to get started
-                </Text>
-              </VStack>
+              <List spacing={3}>
+                {leads
+                  .filter(lead => selectedStatus === 'all' || lead.status === selectedStatus)
+                  .map((lead) => (
+                    <ListItem
+                      key={lead.id}
+                      p={4}
+                      borderRadius="lg"
+                      cursor="pointer"
+                      bg={selectedLead?.id === lead.id ? 'blue.50' : 'white'}
+                      _hover={{ bg: 'gray.50' }}
+                      onClick={() => handleLeadSelect(lead)}
+                      border="1px solid"
+                      borderColor={selectedLead?.id === lead.id ? 'blue.200' : 'gray.100'}
+                      transition="all 0.2s"
+                    >
+                      <VStack align="stretch" spacing={2}>
+                        <HStack justify="space-between">
+                          <Text fontWeight="600">
+                            {lead.first_name} {lead.last_name}
+                          </Text>
+                          <Badge colorScheme={getStatusColor(lead.status)}>
+                            {lead.status}
+                          </Badge>
+                        </HStack>
+                        <HStack spacing={3} color="gray.600" fontSize="sm">
+                          <Text>{lead.email}</Text>
+                          {lead.company_name && (
+                            <>
+                              <Text>•</Text>
+                              <Text>{lead.company_name}</Text>
+                            </>
+                          )}
+                        </HStack>
+                      </VStack>
+                    </ListItem>
+                  ))}
+              </List>
             )}
-          </Box>
-        </Grid>
-      </VStack>
-    </Box>
+          </Card>
+        </VStack>
+
+        {/* Right Panel */}
+        <Card minH="calc(100vh - 280px)" maxW="1200px" w="full">
+          {selectedLead ? (
+            <VStack spacing={10} align="stretch">
+              <HStack justify="space-between" pb={4}>
+                <VStack align="start" spacing={2}>
+                  <Text {...typography.heading.secondary}>
+                    Compose Email
+                  </Text>
+                  <Text {...typography.body.small}>
+                    Writing to: {selectedLead.first_name} {selectedLead.last_name}
+                  </Text>
+                </VStack>
+                <Button
+                  leftIcon={<FiEdit2 />}
+                  variant="ghost"
+                  size="lg"
+                  onClick={() => generateEmailDraft(selectedLead)}
+                  isLoading={isGenerating}
+                >
+                  Regenerate
+                </Button>
+              </HStack>
+
+              <FormControl>
+                <FormLabel fontSize="md">Subject</FormLabel>
+                <Input
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  placeholder="Email subject"
+                  size="lg"
+                  h="56px"
+                  fontSize="md"
+                  px={4}
+                />
+              </FormControl>
+
+              <FormControl flex={1}>
+                <FormLabel fontSize="md">Body</FormLabel>
+                <Textarea
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  placeholder="Email body"
+                  size="lg"
+                  minH="500px"
+                  p={6}
+                  fontSize="md"
+                  lineHeight="tall"
+                  resize="vertical"
+                />
+              </FormControl>
+
+              <HStack justify="space-between" pt={8}>
+                <HStack spacing={4}>
+                  <Button
+                    leftIcon={<FiSend />}
+                    colorScheme="blue"
+                    size="lg"
+                    onClick={() => sendEmail()}
+                    isLoading={isSending}
+                    px={8}
+                    h="56px"
+                    fontSize="md"
+                  >
+                    Send Now
+                  </Button>
+
+                  <Popover placement="top">
+                    <PopoverTrigger>
+                      <Button
+                        leftIcon={<FiCalendar />}
+                        size="lg"
+                        variant="outline"
+                        h="56px"
+                        px={8}
+                        fontSize="md"
+                      >
+                        Schedule Send
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent p={6} w="320px">
+                      <PopoverBody>
+                        <VStack spacing={6}>
+                          <FormControl>
+                            <FormLabel fontSize="sm">Select Date and Time</FormLabel>
+                            <DatePicker
+                              selected={scheduleDate}
+                              onChange={setScheduleDate}
+                              showTimeSelect
+                              dateFormat="MMMM d, yyyy h:mm aa"
+                              minDate={new Date()}
+                              customInput={
+                                <Input
+                                  size="lg"
+                                  h="48px"
+                                  cursor="pointer"
+                                />
+                              }
+                            />
+                          </FormControl>
+                          <Button
+                            w="full"
+                            colorScheme="blue"
+                            size="lg"
+                            h="48px"
+                            onClick={() => sendEmail(scheduleDate.toISOString())}
+                            isDisabled={!scheduleDate}
+                          >
+                            Schedule
+                          </Button>
+                        </VStack>
+                      </PopoverBody>
+                    </PopoverContent>
+                  </Popover>
+                </HStack>
+              </HStack>
+            </VStack>
+          ) : (
+            <VStack py={16} spacing={4}>
+              <Text {...typography.body.regular} color={brandColors.text.muted}>
+                Select a lead to compose an email
+              </Text>
+              <Text {...typography.body.small}>
+                Choose from the list on the left to get started
+              </Text>
+            </VStack>
+          )}
+        </Card>
+      </Grid>
+    </PageContainer>
   )
 }
 

@@ -1,26 +1,26 @@
-import { Box, Flex, useDisclosure, IconButton, Drawer, DrawerContent, DrawerOverlay, Text } from '@chakra-ui/react'
+import { Box, Flex, IconButton, useDisclosure, Drawer, DrawerContent, DrawerOverlay, Text } from '@chakra-ui/react'
 import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import SearchBar from './SearchBar'
 import { FiMenu } from 'react-icons/fi'
+import { brandColors, spacing } from '../theme/constants'
 
 function Layout() {
   const { isOpen, onOpen, onClose } = useDisclosure()
 
   return (
-    <Flex h="100vh" bg="brand.background">
-      {/* Mobile menu button */}
-      <IconButton
-        display={{ base: "flex", lg: "none" }}
-        onClick={onOpen}
-        variant="ghost"
-        position="fixed"
-        top={4}
-        left={4}
-        zIndex={20}
-        icon={<FiMenu size={24} />}
-        aria-label="Open Menu"
-      />
+    <Flex h="100vh" bg={brandColors.background.light}>
+      {/* Desktop Sidebar */}
+      <Box
+        as="nav"
+        pos="fixed"
+        left="0"
+        w={spacing.layout.sidebarWidth}
+        h="100%"
+        display={{ base: 'none', lg: 'block' }}
+      >
+        <Sidebar />
+      </Box>
 
       {/* Mobile Drawer */}
       <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
@@ -30,49 +30,54 @@ function Layout() {
         </DrawerContent>
       </Drawer>
 
-      {/* Desktop Sidebar */}
-      <Box
-        display={{ base: "none", lg: "block" }}
-        w="280px"
-      >
-        <Sidebar />
-      </Box>
+      {/* Mobile menu button */}
+      <IconButton
+        icon={<FiMenu />}
+        onClick={onOpen}
+        variant="ghost"
+        position="fixed"
+        left={4}
+        top={4}
+        display={{ base: 'flex', lg: 'none' }}
+        zIndex={20}
+      />
 
       {/* Main Content Area */}
       <Box 
         flex="1" 
-        ml={{ base: 0, lg: "280px" }}
+        ml={{ base: 0, lg: spacing.layout.sidebarWidth }}
         display="flex"
         flexDirection="column"
         h="100vh"
-        overflow="hidden"
+        overflow="auto"
+        bg="gray.50"
       >
-        {/* SearchBar */}
-        <SearchBar />
-        
-        {/* Scrollable Content Area */}
+        {/* Top SearchBar */}
+        <Box 
+          position="sticky"
+          top={0}
+          zIndex={10}
+          bg="white"
+          borderBottom="1px solid"
+          borderColor="gray.200"
+        >
+          <SearchBar />
+        </Box>
+
+        {/* Page Content */}
         <Box 
           flex="1"
-          overflowY="auto"
-          pt={{ base: 24, lg: 24 }}
-          pb={8}
-          px={6}
-          bgGradient="brand.gradient.sidebar"
+          px={{ base: 4, md: 6, lg: 8 }}
+          py={6}
+          maxW="1800px"
+          w="100%"
+          alignSelf="flex-start"
         >
-          <Box 
-            maxW="1200px" 
-            mx="auto"
-            minH="calc(100vh - 180px)"
-            display="flex"
-            flexDirection="column"
-            alignItems="flex-start"
-          >
-            <Outlet />
-          </Box>
+          <Outlet />
         </Box>
 
         {/* Footer */}
-        <Box
+        <Box 
           py={4}
           px={8}
           borderTop="1px"
@@ -80,8 +85,8 @@ function Layout() {
           bg="white"
           w="full"
         >
-          <Box maxW="1200px" mx="auto">
-            <Text color="gray.500" fontSize="sm" textAlign="center">
+          <Box maxW="1800px" mx="auto">
+            <Text color="gray.500" fontSize="sm">
               © 2025 SmartLead CRM. All rights reserved.
             </Text>
           </Box>

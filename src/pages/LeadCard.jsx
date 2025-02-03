@@ -43,6 +43,8 @@ import {
   FiEdit2
 } from 'react-icons/fi'
 import axios from 'axios'
+import PageHeader from '../components/PageHeader'
+import PageContainer from '../components/PageContainer'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -311,392 +313,401 @@ function LeadCard() {
   }
 
   return (
-    <Box 
-      maxW="1000px"
-      w="full"
-      py={4}
-      pr={{ base: 4, lg: 8 }}
-      pl={{ base: 4, lg: 2 }}
-      ml={0}
-    >
-      <Card
-        borderRadius="2xl"
-        boxShadow="lg"
-        overflow="hidden"
-        border="1px solid"
-        borderColor="gray.100"
-        bg="white"
-        _hover={{
-          boxShadow: 'xl',
-        }}
-        transition="all 0.2s"
-      >
-        {/* Header Section with Gradient */}
-        <Box
-          bgGradient="linear(to-r, brand.teal, brand.blue)"
-          p={6}
-          color="white"
+    <PageContainer>
+      <PageHeader 
+        title="Lead Details"
+        description="View and manage lead information"
+      />
+      
+      <Card>
+        <Box 
+          maxW="1000px"
+          w="full"
+          py={4}
+          pr={{ base: 4, lg: 8 }}
+          pl={{ base: 4, lg: 2 }}
+          ml={0}
         >
-          {isEditing ? (
-            <VStack align="stretch" spacing={4}>
-              <HStack>
-                <Input
-                  placeholder="First Name"
-                  value={editedLead.first_name}
-                  onChange={(e) => setEditedLead(prev => ({
-                    ...prev,
-                    first_name: e.target.value
-                  }))}
-                  bg="whiteAlpha.900"
-                  color="gray.800"
-                />
-                <Input
-                  placeholder="Last Name"
-                  value={editedLead.last_name}
-                  onChange={(e) => setEditedLead(prev => ({
-                    ...prev,
-                    last_name: e.target.value
-                  }))}
-                  bg="whiteAlpha.900"
-                  color="gray.800"
-                />
-              </HStack>
-              <Input
-                placeholder="Email"
-                value={editedLead.email}
-                onChange={(e) => setEditedLead(prev => ({
-                  ...prev,
-                  email: e.target.value
-                }))}
-                bg="whiteAlpha.900"
-                color="gray.800"
-              />
-              <Input
-                placeholder="Company Name"
-                value={editedLead.company_name}
-                onChange={(e) => setEditedLead(prev => ({
-                  ...prev,
-                  company_name: e.target.value
-                }))}
-                bg="whiteAlpha.900"
-                color="gray.800"
-              />
-              <HStack>
-                <Button
-                  leftIcon={<FiCheck />}
-                  colorScheme="green"
-                  onClick={handleSave}
-                  isLoading={isUpdating}
-                  size="sm"
-                >
-                  Save Changes
-                </Button>
-                <Button
-                  leftIcon={<FiX />}
-                  onClick={() => {
-                    setIsEditing(false)
-                    setEditedLead(lead)
-                  }}
-                  size="sm"
-                  variant="ghost"
-                  _hover={{ bg: 'whiteAlpha.200' }}
-                >
-                  Cancel
-                </Button>
-              </HStack>
-            </VStack>
-          ) : (
-            <HStack justify="space-between" align="center">
-              <VStack align="start" spacing={1}>
-                <Heading size={{ base: "md", md: "lg" }} color="white">
-                  {lead.first_name} {lead.last_name}
-                </Heading>
-                <Text color="whiteAlpha.900" fontSize="sm">
-                  {lead.company_name}
-                </Text>
-              </VStack>
-              <Tooltip label="Edit Lead Information">
-                <IconButton
-                  icon={<FiEdit2 />}
-                  variant="ghost"
-                  onClick={() => setIsEditing(true)}
-                  color="white"
-                  _hover={{ bg: 'whiteAlpha.200' }}
-                />
-              </Tooltip>
-            </HStack>
-          )}
-        </Box>
-
-        <CardBody p={6}>
-          <VStack spacing={6} align="stretch">
-            {/* Status Section */}
-            <Box 
-              bg="gray.50" 
-              p={4} 
-              borderRadius="xl"
-              border="1px solid"
-              borderColor="gray.100"
+          <Card
+            borderRadius="2xl"
+            boxShadow="lg"
+            overflow="hidden"
+            border="1px solid"
+            borderColor="gray.100"
+            bg="white"
+            _hover={{
+              boxShadow: 'xl',
+            }}
+            transition="all 0.2s"
+          >
+            {/* Header Section with Gradient */}
+            <Box
+              bgGradient="linear(to-r, brand.teal, brand.blue)"
+              p={6}
+              color="white"
             >
-              <Stack 
-                direction={{ base: "column", md: "row" }} 
-                align={{ base: "stretch", md: "center" }} 
-                spacing={4}
-              >
-                <Text fontWeight="500" color="gray.700">Status:</Text>
-                <Select
-                  value={lead.status}
-                  onChange={(e) => handleStatusChange(e.target.value)}
-                  width={{ base: "full", md: "200px" }}
-                  size="md"
-                  variant="filled"
-                  isDisabled={isUpdating}
-                  bg={`${getStatusColor(lead.status)}.50`}
-                  _hover={{ bg: `${getStatusColor(lead.status)}.100` }}
-                >
-                  {statusOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Select>
-                <Badge 
-                  colorScheme={getStatusColor(lead.status)}
-                  fontSize="md"
-                  px={4}
-                  py={2}
-                  borderRadius="full"
-                  textTransform="capitalize"
-                >
-                  {lead.status}
-                </Badge>
-              </Stack>
-            </Box>
-
-            {/* Contact Information */}
-            <Box>
-              <Heading size="sm" mb={4} color="brand.teal">Contact Information</Heading>
-              <VStack 
-                spacing={4} 
-                align="stretch"
-                bg="white"
-                p={4}
-                borderRadius="xl"
-                border="1px solid"
-                borderColor="gray.100"
-              >
-                <HStack>
-                  <Box
-                    p={2}
-                    borderRadius="lg"
-                    bg="brand.gradient.accent"
-                  >
-                    <Icon as={FiMail} color="brand.teal" />
-                  </Box>
-                  <Text>{lead.email}</Text>
-                </HStack>
-                {lead.phone && (
+              {isEditing ? (
+                <VStack align="stretch" spacing={4}>
                   <HStack>
-                    <Box
-                      p={2}
-                      borderRadius="lg"
-                      bg="brand.gradient.accent"
-                    >
-                      <Icon as={FiPhone} color="brand.teal" />
-                    </Box>
-                    <Text>{lead.phone}</Text>
+                    <Input
+                      placeholder="First Name"
+                      value={editedLead.first_name}
+                      onChange={(e) => setEditedLead(prev => ({
+                        ...prev,
+                        first_name: e.target.value
+                      }))}
+                      bg="whiteAlpha.900"
+                      color="gray.800"
+                    />
+                    <Input
+                      placeholder="Last Name"
+                      value={editedLead.last_name}
+                      onChange={(e) => setEditedLead(prev => ({
+                        ...prev,
+                        last_name: e.target.value
+                      }))}
+                      bg="whiteAlpha.900"
+                      color="gray.800"
+                    />
                   </HStack>
-                )}
-                {lead.company_name && (
+                  <Input
+                    placeholder="Email"
+                    value={editedLead.email}
+                    onChange={(e) => setEditedLead(prev => ({
+                      ...prev,
+                      email: e.target.value
+                    }))}
+                    bg="whiteAlpha.900"
+                    color="gray.800"
+                  />
+                  <Input
+                    placeholder="Company Name"
+                    value={editedLead.company_name}
+                    onChange={(e) => setEditedLead(prev => ({
+                      ...prev,
+                      company_name: e.target.value
+                    }))}
+                    bg="whiteAlpha.900"
+                    color="gray.800"
+                  />
                   <HStack>
-                    <Box
-                      p={2}
-                      borderRadius="lg"
-                      bg="brand.gradient.accent"
+                    <Button
+                      leftIcon={<FiCheck />}
+                      colorScheme="green"
+                      onClick={handleSave}
+                      isLoading={isUpdating}
+                      size="sm"
                     >
-                      <Icon as={FiBriefcase} color="brand.teal" />
-                    </Box>
-                    <Text>{lead.company_name}</Text>
-                  </HStack>
-                )}
-              </VStack>
-            </Box>
-
-            {/* Actions */}
-            <Box>
-              <Heading size="sm" mb={4} color="brand.teal">Actions</Heading>
-              <Stack 
-                direction={{ base: "column", md: "row" }} 
-                spacing={4}
-                w="full"
-              >
-                <Button
-                  leftIcon={<FiMail />}
-                  flex={1}
-                  size="lg"
-                  bgGradient="linear(to-r, brand.teal, brand.blue)"
-                  color="white"
-                  _hover={{
-                    bgGradient: 'linear(to-r, brand.tealHover, brand.blueHover)',
-                    transform: 'translateY(-1px)',
-                  }}
-                >
-                  Send Email
-                </Button>
-                <Button
-                  leftIcon={<FiPhone />}
-                  flex={1}
-                  size="lg"
-                  bgGradient="linear(to-r, brand.teal, brand.blue)"
-                  color="white"
-                  _hover={{
-                    bgGradient: 'linear(to-r, brand.tealHover, brand.blueHover)',
-                    transform: 'translateY(-1px)',
-                  }}
-                >
-                  Make Call
-                </Button>
-                <Button
-                  leftIcon={<FiMessageSquare />}
-                  flex={1}
-                  size="lg"
-                  bgGradient="linear(to-r, brand.teal, brand.blue)"
-                  color="white"
-                  _hover={{
-                    bgGradient: 'linear(to-r, brand.tealHover, brand.blueHover)',
-                    transform: 'translateY(-1px)',
-                  }}
-                >
-                  Send WhatsApp
-                </Button>
-              </Stack>
-            </Box>
-
-            {/* Lead Activity */}
-            <Box>
-              <Heading size="sm" mb={4} color="brand.teal">Lead Activity</Heading>
-              <VStack spacing={3} align="stretch">
-                {loadingActivities ? (
-                  <Box textAlign="center" py={4}>
-                    <Spinner size="md" />
-                    <Text mt={2}>Loading activities...</Text>
-                  </Box>
-                ) : activities.length === 0 ? (
-                  <Box 
-                    textAlign="center" 
-                    py={8} 
-                    px={4} 
-                    borderRadius="lg" 
-                    borderWidth="1px" 
-                    borderStyle="dashed"
-                  >
-                    <Icon as={FiClock} boxSize={6} color="gray.400" mb={2} />
-                    <Text color="gray.500">No activities recorded yet</Text>
-                  </Box>
-                ) : (
-                  activities.map((activity) => (
-                    <Box
-                      key={activity.id}
-                      p={4}
-                      borderRadius="lg"
-                      borderWidth="1px"
-                      borderColor="gray.200"
-                      _hover={{ 
-                        boxShadow: 'sm',
-                        borderColor: `${getActivityColor(activity.activity_type)}.200`
+                      Save Changes
+                    </Button>
+                    <Button
+                      leftIcon={<FiX />}
+                      onClick={() => {
+                        setIsEditing(false)
+                        setEditedLead(lead)
                       }}
-                      transition="all 0.2s"
+                      size="sm"
+                      variant="ghost"
+                      _hover={{ bg: 'whiteAlpha.200' }}
                     >
-                      <HStack spacing={4} align="flex-start">
+                      Cancel
+                    </Button>
+                  </HStack>
+                </VStack>
+              ) : (
+                <HStack justify="space-between" align="center">
+                  <VStack align="start" spacing={1}>
+                    <Heading size={{ base: "md", md: "lg" }} color="white">
+                      {lead.first_name} {lead.last_name}
+                    </Heading>
+                    <Text color="whiteAlpha.900" fontSize="sm">
+                      {lead.company_name}
+                    </Text>
+                  </VStack>
+                  <Tooltip label="Edit Lead Information">
+                    <IconButton
+                      icon={<FiEdit2 />}
+                      variant="ghost"
+                      onClick={() => setIsEditing(true)}
+                      color="white"
+                      _hover={{ bg: 'whiteAlpha.200' }}
+                    />
+                  </Tooltip>
+                </HStack>
+              )}
+            </Box>
+
+            <CardBody p={6}>
+              <VStack spacing={6} align="stretch">
+                {/* Status Section */}
+                <Box 
+                  bg="gray.50" 
+                  p={4} 
+                  borderRadius="xl"
+                  border="1px solid"
+                  borderColor="gray.100"
+                >
+                  <Stack 
+                    direction={{ base: "column", md: "row" }} 
+                    align={{ base: "stretch", md: "center" }} 
+                    spacing={4}
+                  >
+                    <Text fontWeight="500" color="gray.700">Status:</Text>
+                    <Select
+                      value={lead.status}
+                      onChange={(e) => handleStatusChange(e.target.value)}
+                      width={{ base: "full", md: "200px" }}
+                      size="md"
+                      variant="filled"
+                      isDisabled={isUpdating}
+                      bg={`${getStatusColor(lead.status)}.50`}
+                      _hover={{ bg: `${getStatusColor(lead.status)}.100` }}
+                    >
+                      {statusOptions.map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Select>
+                    <Badge 
+                      colorScheme={getStatusColor(lead.status)}
+                      fontSize="md"
+                      px={4}
+                      py={2}
+                      borderRadius="full"
+                      textTransform="capitalize"
+                    >
+                      {lead.status}
+                    </Badge>
+                  </Stack>
+                </Box>
+
+                {/* Contact Information */}
+                <Box>
+                  <Heading size="sm" mb={4} color="brand.teal">Contact Information</Heading>
+                  <VStack 
+                    spacing={4} 
+                    align="stretch"
+                    bg="white"
+                    p={4}
+                    borderRadius="xl"
+                    border="1px solid"
+                    borderColor="gray.100"
+                  >
+                    <HStack>
+                      <Box
+                        p={2}
+                        borderRadius="lg"
+                        bg="brand.gradient.accent"
+                      >
+                        <Icon as={FiMail} color="brand.teal" />
+                      </Box>
+                      <Text>{lead.email}</Text>
+                    </HStack>
+                    {lead.phone && (
+                      <HStack>
                         <Box
                           p={2}
-                          borderRadius="full"
-                          bg={`${getActivityColor(activity.activity_type)}.50`}
-                          color={`${getActivityColor(activity.activity_type)}.500`}
+                          borderRadius="lg"
+                          bg="brand.gradient.accent"
                         >
-                          <Icon 
-                            as={getActivityIcon(activity.activity_type)} 
-                            boxSize={5}
-                          />
+                          <Icon as={FiPhone} color="brand.teal" />
                         </Box>
-                        <Box flex={1}>
-                          <HStack justify="space-between" align="flex-start">
-                            <Box>
-                              <Text 
-                                fontWeight="600"
-                                color={`${getActivityColor(activity.activity_type)}.700`}
-                              >
-                                {activity.activity_type.split('_').map(word => 
-                                  word.charAt(0).toUpperCase() + word.slice(1)
-                                ).join(' ')}
-                              </Text>
-                              {activity.body && (
+                        <Text>{lead.phone}</Text>
+                      </HStack>
+                    )}
+                    {lead.company_name && (
+                      <HStack>
+                        <Box
+                          p={2}
+                          borderRadius="lg"
+                          bg="brand.gradient.accent"
+                        >
+                          <Icon as={FiBriefcase} color="brand.teal" />
+                        </Box>
+                        <Text>{lead.company_name}</Text>
+                      </HStack>
+                    )}
+                  </VStack>
+                </Box>
+
+                {/* Actions */}
+                <Box>
+                  <Heading size="sm" mb={4} color="brand.teal">Actions</Heading>
+                  <Stack 
+                    direction={{ base: "column", md: "row" }} 
+                    spacing={4}
+                    w="full"
+                  >
+                    <Button
+                      leftIcon={<FiMail />}
+                      flex={1}
+                      size="lg"
+                      bgGradient="linear(to-r, brand.teal, brand.blue)"
+                      color="white"
+                      _hover={{
+                        bgGradient: 'linear(to-r, brand.tealHover, brand.blueHover)',
+                        transform: 'translateY(-1px)',
+                      }}
+                    >
+                      Send Email
+                    </Button>
+                    <Button
+                      leftIcon={<FiPhone />}
+                      flex={1}
+                      size="lg"
+                      bgGradient="linear(to-r, brand.teal, brand.blue)"
+                      color="white"
+                      _hover={{
+                        bgGradient: 'linear(to-r, brand.tealHover, brand.blueHover)',
+                        transform: 'translateY(-1px)',
+                      }}
+                    >
+                      Make Call
+                    </Button>
+                    <Button
+                      leftIcon={<FiMessageSquare />}
+                      flex={1}
+                      size="lg"
+                      bgGradient="linear(to-r, brand.teal, brand.blue)"
+                      color="white"
+                      _hover={{
+                        bgGradient: 'linear(to-r, brand.tealHover, brand.blueHover)',
+                        transform: 'translateY(-1px)',
+                      }}
+                    >
+                      Send WhatsApp
+                    </Button>
+                  </Stack>
+                </Box>
+
+                {/* Lead Activity */}
+                <Box>
+                  <Heading size="sm" mb={4} color="brand.teal">Lead Activity</Heading>
+                  <VStack spacing={3} align="stretch">
+                    {loadingActivities ? (
+                      <Box textAlign="center" py={4}>
+                        <Spinner size="md" />
+                        <Text mt={2}>Loading activities...</Text>
+                      </Box>
+                    ) : activities.length === 0 ? (
+                      <Box 
+                        textAlign="center" 
+                        py={8} 
+                        px={4} 
+                        borderRadius="lg" 
+                        borderWidth="1px" 
+                        borderStyle="dashed"
+                      >
+                        <Icon as={FiClock} boxSize={6} color="gray.400" mb={2} />
+                        <Text color="gray.500">No activities recorded yet</Text>
+                      </Box>
+                    ) : (
+                      activities.map((activity) => (
+                        <Box
+                          key={activity.id}
+                          p={4}
+                          borderRadius="lg"
+                          borderWidth="1px"
+                          borderColor="gray.200"
+                          _hover={{ 
+                            boxShadow: 'sm',
+                            borderColor: `${getActivityColor(activity.activity_type)}.200`
+                          }}
+                          transition="all 0.2s"
+                        >
+                          <HStack spacing={4} align="flex-start">
+                            <Box
+                              p={2}
+                              borderRadius="full"
+                              bg={`${getActivityColor(activity.activity_type)}.50`}
+                              color={`${getActivityColor(activity.activity_type)}.500`}
+                            >
+                              <Icon 
+                                as={getActivityIcon(activity.activity_type)} 
+                                boxSize={5}
+                              />
+                            </Box>
+                            <Box flex={1}>
+                              <HStack justify="space-between" align="flex-start">
+                                <Box>
+                                  <Text 
+                                    fontWeight="600"
+                                    color={`${getActivityColor(activity.activity_type)}.700`}
+                                  >
+                                    {activity.activity_type.split('_').map(word => 
+                                      word.charAt(0).toUpperCase() + word.slice(1)
+                                    ).join(' ')}
+                                  </Text>
+                                  {activity.body && (
+                                    <Text 
+                                      fontSize="sm" 
+                                      color="gray.600" 
+                                      mt={1}
+                                    >
+                                      {activity.body}
+                                    </Text>
+                                  )}
+                                </Box>
                                 <Text 
                                   fontSize="sm" 
-                                  color="gray.600" 
-                                  mt={1}
+                                  color="gray.500"
+                                  whiteSpace="nowrap"
                                 >
-                                  {activity.body}
+                                  {new Date(activity.activity_datetime).toLocaleString([], {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
                                 </Text>
-                              )}
+                              </HStack>
                             </Box>
-                            <Text 
-                              fontSize="sm" 
-                              color="gray.500"
-                              whiteSpace="nowrap"
-                            >
-                              {new Date(activity.activity_datetime).toLocaleString([], {
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </Text>
                           </HStack>
                         </Box>
-                      </HStack>
-                    </Box>
-                  ))
-                )}
+                      ))
+                    )}
+                  </VStack>
+                </Box>
               </VStack>
-            </Box>
-          </VStack>
-        </CardBody>
+            </CardBody>
+          </Card>
+
+          {/* Status Update Dialog */}
+          <AlertDialog
+            isOpen={isOpen}
+            leastDestructive={cancelRef}
+            onClose={onClose}
+          >
+            <AlertDialogOverlay>
+              <AlertDialogContent>
+                <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                  Update Lead Status
+                </AlertDialogHeader>
+
+                <AlertDialogBody>
+                  Are you sure you want to update the lead status to {selectedStatus}?
+                </AlertDialogBody>
+
+                <AlertDialogFooter>
+                  <Button ref={cancelRef} onClick={onClose}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    colorScheme="blue" 
+                    onClick={() => updateLeadStatus(selectedStatus)} 
+                    ml={3}
+                    isLoading={isUpdating}
+                  >
+                    Update
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialogOverlay>
+          </AlertDialog>
+        </Box>
       </Card>
-
-      {/* Status Update Dialog */}
-      <AlertDialog
-        isOpen={isOpen}
-        leastDestructive={cancelRef}
-        onClose={onClose}
-      >
-        <AlertDialogOverlay>
-          <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Update Lead Status
-            </AlertDialogHeader>
-
-            <AlertDialogBody>
-              Are you sure you want to update the lead status to {selectedStatus}?
-            </AlertDialogBody>
-
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onClose}>
-                Cancel
-              </Button>
-              <Button 
-                colorScheme="blue" 
-                onClick={() => updateLeadStatus(selectedStatus)} 
-                ml={3}
-                isLoading={isUpdating}
-              >
-                Update
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
-    </Box>
+    </PageContainer>
   )
 }
 
