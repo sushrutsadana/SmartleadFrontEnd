@@ -22,7 +22,10 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
   Spinner,
-  Stack
+  Stack,
+  Input,
+  IconButton,
+  Tooltip
 } from '@chakra-ui/react'
 import { useParams } from 'react-router-dom'
 import { createClient } from '@supabase/supabase-js'
@@ -36,7 +39,8 @@ import {
   FiCheck,
   FiX,
   FiStar,
-  FiAlertCircle
+  FiAlertCircle,
+  FiEdit2
 } from 'react-icons/fi'
 import axios from 'axios'
 
@@ -58,6 +62,8 @@ function LeadCard() {
   const [selectedStatus, setSelectedStatus] = useState(null)
   const [activities, setActivities] = useState([])
   const [loadingActivities, setLoadingActivities] = useState(true)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedLead, setEditedLead] = useState(null)
 
   const statusOptions = [
     { value: 'new', label: 'New' },
@@ -70,7 +76,10 @@ function LeadCard() {
   useEffect(() => {
     fetchLead()
     fetchActivities()
-  }, [id])
+    if (lead) {
+      setEditedLead(lead)
+    }
+  }, [id, lead])
 
   const fetchLead = async () => {
     try {
@@ -239,6 +248,60 @@ function LeadCard() {
     }
   }
 
+  const handleSave = async () => {
+    setIsUpdating(true)
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({
+          first_name: editedLead.first_name,
+          last_name: editedLead.last_name,
+          email: editedLead.email,
+          company_name: editedLead.company_name
+        })
+        .eq('id', id)
+
+      if (error) throw error
+
+      // Create activity for the edit
+      const { error: activityError } = await supabase
+        .from('activities')
+        .insert([
+          {
+            lead_id: id,
+            activity_type: 'lead_updated',
+            body: 'Lead information updated',
+            activity_datetime: new Date().toISOString()
+          }
+        ])
+
+      if (activityError) throw activityError
+
+      setLead(editedLead)
+      setIsEditing(false)
+      
+      toast({
+        title: 'Lead Updated',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      })
+
+      // Refresh activities
+      fetchActivities()
+    } catch (error) {
+      toast({
+        title: 'Error Updating Lead',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
   if (loading) {
     return <Box p={6}>Loading...</Box>
   }
@@ -248,15 +311,133 @@ function LeadCard() {
   }
 
   return (
-    <Box p={{ base: 2, md: 6 }}>
-      <Card>
-        <CardBody>
-          <VStack spacing={{ base: 4, md: 6 }} align="stretch">
-            {/* Header with Name and Status */}
-            <Box>
-              <Heading size={{ base: "md", md: "lg" }} mb={2}>
-                {lead.first_name} {lead.last_name}
-              </Heading>
+    <Box 
+      maxW="1000px"
+      w="full"
+      py={4}
+      pr={{ base: 4, lg: 8 }}
+      pl={{ base: 4, lg: 2 }}
+      ml={0}
+    >
+      <Card
+        borderRadius="2xl"
+        boxShadow="lg"
+        overflow="hidden"
+        border="1px solid"
+        borderColor="gray.100"
+        bg="white"
+        _hover={{
+          boxShadow: 'xl',
+        }}
+        transition="all 0.2s"
+      >
+        {/* Header Section with Gradient */}
+        <Box
+          bgGradient="linear(to-r, brand.teal, brand.blue)"
+          p={6}
+          color="white"
+        >
+          {isEditing ? (
+            <VStack align="stretch" spacing={4}>
+              <HStack>
+                <Input
+                  placeholder="First Name"
+                  value={editedLead.first_name}
+                  onChange={(e) => setEditedLead(prev => ({
+                    ...prev,
+                    first_name: e.target.value
+                  }))}
+                  bg="whiteAlpha.900"
+                  color="gray.800"
+                />
+                <Input
+                  placeholder="Last Name"
+                  value={editedLead.last_name}
+                  onChange={(e) => setEditedLead(prev => ({
+                    ...prev,
+                    last_name: e.target.value
+                  }))}
+                  bg="whiteAlpha.900"
+                  color="gray.800"
+                />
+              </HStack>
+              <Input
+                placeholder="Email"
+                value={editedLead.email}
+                onChange={(e) => setEditedLead(prev => ({
+                  ...prev,
+                  email: e.target.value
+                }))}
+                bg="whiteAlpha.900"
+                color="gray.800"
+              />
+              <Input
+                placeholder="Company Name"
+                value={editedLead.company_name}
+                onChange={(e) => setEditedLead(prev => ({
+                  ...prev,
+                  company_name: e.target.value
+                }))}
+                bg="whiteAlpha.900"
+                color="gray.800"
+              />
+              <HStack>
+                <Button
+                  leftIcon={<FiCheck />}
+                  colorScheme="green"
+                  onClick={handleSave}
+                  isLoading={isUpdating}
+                  size="sm"
+                >
+                  Save Changes
+                </Button>
+                <Button
+                  leftIcon={<FiX />}
+                  onClick={() => {
+                    setIsEditing(false)
+                    setEditedLead(lead)
+                  }}
+                  size="sm"
+                  variant="ghost"
+                  _hover={{ bg: 'whiteAlpha.200' }}
+                >
+                  Cancel
+                </Button>
+              </HStack>
+            </VStack>
+          ) : (
+            <HStack justify="space-between" align="center">
+              <VStack align="start" spacing={1}>
+                <Heading size={{ base: "md", md: "lg" }} color="white">
+                  {lead.first_name} {lead.last_name}
+                </Heading>
+                <Text color="whiteAlpha.900" fontSize="sm">
+                  {lead.company_name}
+                </Text>
+              </VStack>
+              <Tooltip label="Edit Lead Information">
+                <IconButton
+                  icon={<FiEdit2 />}
+                  variant="ghost"
+                  onClick={() => setIsEditing(true)}
+                  color="white"
+                  _hover={{ bg: 'whiteAlpha.200' }}
+                />
+              </Tooltip>
+            </HStack>
+          )}
+        </Box>
+
+        <CardBody p={6}>
+          <VStack spacing={6} align="stretch">
+            {/* Status Section */}
+            <Box 
+              bg="gray.50" 
+              p={4} 
+              borderRadius="xl"
+              border="1px solid"
+              borderColor="gray.100"
+            >
               <Stack 
                 direction={{ base: "column", md: "row" }} 
                 align={{ base: "stretch", md: "center" }} 
@@ -282,45 +463,68 @@ function LeadCard() {
                 <Badge 
                   colorScheme={getStatusColor(lead.status)}
                   fontSize="md"
-                  px={3}
-                  py={1}
+                  px={4}
+                  py={2}
                   borderRadius="full"
+                  textTransform="capitalize"
                 >
-                  {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                  {lead.status}
                 </Badge>
               </Stack>
             </Box>
 
-            <Divider />
-
             {/* Contact Information */}
             <Box>
-              <Heading size="sm" mb={4}>Contact Information</Heading>
-              <VStack spacing={3} align="stretch">
+              <Heading size="sm" mb={4} color="brand.teal">Contact Information</Heading>
+              <VStack 
+                spacing={4} 
+                align="stretch"
+                bg="white"
+                p={4}
+                borderRadius="xl"
+                border="1px solid"
+                borderColor="gray.100"
+              >
                 <HStack>
-                  <Icon as={FiMail} color="gray.500" />
+                  <Box
+                    p={2}
+                    borderRadius="lg"
+                    bg="brand.gradient.accent"
+                  >
+                    <Icon as={FiMail} color="brand.teal" />
+                  </Box>
                   <Text>{lead.email}</Text>
                 </HStack>
                 {lead.phone && (
                   <HStack>
-                    <Icon as={FiPhone} color="gray.500" />
+                    <Box
+                      p={2}
+                      borderRadius="lg"
+                      bg="brand.gradient.accent"
+                    >
+                      <Icon as={FiPhone} color="brand.teal" />
+                    </Box>
                     <Text>{lead.phone}</Text>
                   </HStack>
                 )}
                 {lead.company_name && (
                   <HStack>
-                    <Icon as={FiBriefcase} color="gray.500" />
+                    <Box
+                      p={2}
+                      borderRadius="lg"
+                      bg="brand.gradient.accent"
+                    >
+                      <Icon as={FiBriefcase} color="brand.teal" />
+                    </Box>
                     <Text>{lead.company_name}</Text>
                   </HStack>
                 )}
               </VStack>
             </Box>
 
-            <Divider />
-
             {/* Actions */}
             <Box>
-              <Heading size="sm" mb={4}>Actions</Heading>
+              <Heading size="sm" mb={4} color="brand.teal">Actions</Heading>
               <Stack 
                 direction={{ base: "column", md: "row" }} 
                 spacing={4}
@@ -328,36 +532,49 @@ function LeadCard() {
               >
                 <Button
                   leftIcon={<FiMail />}
-                  colorScheme="blue"
-                  variant="outline"
-                  size="md"
+                  flex={1}
+                  size="lg"
+                  bgGradient="linear(to-r, brand.teal, brand.blue)"
+                  color="white"
+                  _hover={{
+                    bgGradient: 'linear(to-r, brand.tealHover, brand.blueHover)',
+                    transform: 'translateY(-1px)',
+                  }}
                 >
                   Send Email
                 </Button>
                 <Button
                   leftIcon={<FiPhone />}
-                  colorScheme="green"
-                  variant="outline"
-                  size="md"
+                  flex={1}
+                  size="lg"
+                  bgGradient="linear(to-r, brand.teal, brand.blue)"
+                  color="white"
+                  _hover={{
+                    bgGradient: 'linear(to-r, brand.tealHover, brand.blueHover)',
+                    transform: 'translateY(-1px)',
+                  }}
                 >
                   Make Call
                 </Button>
                 <Button
                   leftIcon={<FiMessageSquare />}
-                  colorScheme="yellow"
-                  variant="outline"
-                  size="md"
+                  flex={1}
+                  size="lg"
+                  bgGradient="linear(to-r, brand.teal, brand.blue)"
+                  color="white"
+                  _hover={{
+                    bgGradient: 'linear(to-r, brand.tealHover, brand.blueHover)',
+                    transform: 'translateY(-1px)',
+                  }}
                 >
                   Send WhatsApp
                 </Button>
               </Stack>
             </Box>
 
-            <Divider />
-
             {/* Lead Activity */}
             <Box>
-              <Heading size="sm" mb={4}>Lead Activity</Heading>
+              <Heading size="sm" mb={4} color="brand.teal">Lead Activity</Heading>
               <VStack spacing={3} align="stretch">
                 {loadingActivities ? (
                   <Box textAlign="center" py={4}>
@@ -447,7 +664,7 @@ function LeadCard() {
         </CardBody>
       </Card>
 
-      {/* Confirmation Dialog */}
+      {/* Status Update Dialog */}
       <AlertDialog
         isOpen={isOpen}
         leastDestructive={cancelRef}

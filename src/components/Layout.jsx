@@ -1,4 +1,4 @@
-import { Box, Flex, useDisclosure, IconButton, Drawer, DrawerContent, DrawerOverlay } from '@chakra-ui/react'
+import { Box, Flex, useDisclosure, IconButton, Drawer, DrawerContent, DrawerOverlay, Text } from '@chakra-ui/react'
 import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import SearchBar from './SearchBar'
@@ -42,21 +42,48 @@ function Layout() {
       <Box 
         flex="1" 
         ml={{ base: 0, lg: "280px" }}
-        position="relative"
+        display="flex"
+        flexDirection="column"
+        h="100vh"
+        overflow="hidden"
       >
         {/* SearchBar */}
         <SearchBar />
         
-        {/* Content */}
+        {/* Scrollable Content Area */}
         <Box 
-          p={6} 
-          pt={{ base: 24, lg: 24 }}
+          flex="1"
           overflowY="auto"
+          pt={{ base: 24, lg: 24 }}
+          pb={8}
+          px={6}
           bgGradient="brand.gradient.sidebar"
-          minH="100vh"
         >
-          <Box mt={4}>
+          <Box 
+            maxW="1200px" 
+            mx="auto"
+            minH="calc(100vh - 180px)"
+            display="flex"
+            flexDirection="column"
+            alignItems="flex-start"
+          >
             <Outlet />
+          </Box>
+        </Box>
+
+        {/* Footer */}
+        <Box
+          py={4}
+          px={8}
+          borderTop="1px"
+          borderColor="gray.200"
+          bg="white"
+          w="full"
+        >
+          <Box maxW="1200px" mx="auto">
+            <Text color="gray.500" fontSize="sm" textAlign="center">
+              © 2025 SmartLead CRM. All rights reserved.
+            </Text>
           </Box>
         </Box>
       </Box>

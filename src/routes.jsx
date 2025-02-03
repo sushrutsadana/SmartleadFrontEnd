@@ -6,6 +6,7 @@ import CheckEmails from './pages/CheckEmails'
 import CreateLead from './pages/CreateLead'
 import MakeCall from './pages/MakeCall'
 import LeadCard from './pages/LeadCard'
+import SendEmails from './pages/SendEmails'
 
 
 export const router = createBrowserRouter([
@@ -40,6 +41,10 @@ export const router = createBrowserRouter([
       {
         path: '/leads/:id',
         element: <LeadCard />,
+      },
+      {
+        path: '/send-emails',
+        element: <SendEmails />
       },
     ],
   },
