@@ -6,20 +6,18 @@ import {
   FiMessageSquare, 
   FiPhone,
   FiDatabase,
-  FiUsers,
-  FiSearch,
-  FiUserPlus
+  FiSearch
 } from 'react-icons/fi'
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-function Sidebar() {
+function Sidebar({ isMobile, onClose }) {
   const location = useLocation()
 
   const isActive = (path) => location.pathname === path
 
   const NavItem = ({ icon, children, to }) => (
-    <Link to={to}>
+    <Link to={to} onClick={isMobile ? onClose : undefined}>
       <HStack
         px={4}
         py={3}
@@ -54,12 +52,12 @@ function Sidebar() {
 
   return (
     <Box
-      w="280px"
+      w="full"
       h="100vh"
-      position="fixed"
       bgGradient="linear(to-b, #00838F, #2B3990)"
       color="white"
       py={6}
+      overflowY="auto"
     >
       {/* Logo */}
       <Box px={6} mb={8}>
@@ -93,9 +91,6 @@ function Sidebar() {
             </NavItem>
             <NavItem icon={FiSearch} to="/social">
               Search Social Media
-            </NavItem>
-            <NavItem icon={FiUserPlus} to="/leads/new">
-              Create New Lead
             </NavItem>
           </VStack>
         </Box>

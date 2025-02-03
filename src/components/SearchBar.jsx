@@ -10,8 +10,10 @@ import {
   Text,
   useDisclosure,
   Portal,
+  HStack,
+  Flex
 } from '@chakra-ui/react'
-import { FiSearch, FiUser, FiMail, FiBriefcase } from 'react-icons/fi'
+import { FiSearch, FiUser, FiMail, FiBriefcase, FiUserPlus } from 'react-icons/fi'
 import { createClient } from '@supabase/supabase-js'
 import { useNavigate } from 'react-router-dom'
 
@@ -115,130 +117,157 @@ function SearchBar() {
 
   return (
     <Box 
-      position="fixed" 
-      top={0} 
-      left="280px"
+      position="fixed"
+      top={0}
+      left={{ base: 0, lg: "280px" }}
       right={0}
-      height="70px"
+      height={{ base: "auto", lg: "70px" }}
       bg="white"
       borderBottom="1px"
       borderColor="gray.100"
       display="flex"
       alignItems="center"
-      px={6}
+      px={{ base: 4, lg: 6 }}
+      py={{ base: 4, lg: 0 }}
       zIndex={10}
       boxShadow="sm"
       ref={searchRef}
     >
-      <Box
-        maxW="600px"
+      <Flex 
+        justify="space-between" 
+        align="center" 
         w="full"
-        position="relative"
+        direction={{ base: "column", md: "row" }}
+        gap={{ base: 2, md: 0 }}
       >
-        <Box
-          p="2px"
-          borderRadius="xl"
-          bgGradient="linear(to-r, #00838F, #2B3990)"
+        <Box 
+          maxW={{ base: "full", md: "600px" }} 
+          w="full" 
+          position="relative"
         >
-          <InputGroup size="lg">
-            <InputLeftElement pointerEvents="none" pl={2}>
-              <FiSearch size={20} color="var(--chakra-colors-brand-teal)" />
-            </InputLeftElement>
-            <Input
-              placeholder="Search leads by name, email, or company..."
-              bg="white"
-              borderRadius="xl"
-              borderWidth={0}
-              pl={12}
-              value={searchQuery}
-              onChange={handleSearch}
-              _hover={{
-                boxShadow: 'sm'
-              }}
-              _focus={{
-                boxShadow: 'md',
-                bg: 'white'
-              }}
-            />
-            <InputRightElement width="5.5rem" pr={1}>
-              <Button 
-                h="35px" 
-                w="full"
-                bgGradient="linear(to-r, #00838F, #2B3990)"
-                color="white"
-                fontSize="sm"
-                fontWeight="500"
-                isLoading={isSearching}
-                onClick={() => searchLeads(searchQuery)}
-                _hover={{
-                  bgGradient: 'linear(to-r, brand.tealHover, brand.blueHover)',
-                  transform: 'translateY(-1px)',
-                }}
-              >
-                Search
-              </Button>
-            </InputRightElement>
-          </InputGroup>
-        </Box>
-
-        {searchQuery && results.length > 0 && (
           <Box
-            position="absolute"
-            top="calc(100% + 8px)"
-            left={0}
-            right={0}
-            bg="white"
-            borderRadius="lg"
-            boxShadow="xl"
-            border="1px"
-            borderColor="gray.100"
-            maxH="400px"
-            overflowY="auto"
-            zIndex={1000}
+            p="2px"
+            borderRadius="xl"
+            bgGradient="linear(to-r, #00838F, #2B3990)"
           >
-            <VStack spacing={0} align="stretch">
-              {results.map((lead) => (
-                <Box
-                  key={lead.id}
-                  p={4}
-                  cursor="pointer"
-                  _hover={{ bg: 'gray.50' }}
-                  onClick={() => handleResultClick(lead)}
-                  borderBottom="1px"
-                  borderColor="gray.100"
+            <InputGroup size="lg">
+              <InputLeftElement pointerEvents="none" pl={2}>
+                <FiSearch size={20} color="var(--chakra-colors-brand-teal)" />
+              </InputLeftElement>
+              <Input
+                placeholder="Search leads by name, email, or company..."
+                bg="white"
+                borderRadius="xl"
+                borderWidth={0}
+                pl={12}
+                value={searchQuery}
+                onChange={handleSearch}
+                _hover={{
+                  boxShadow: 'sm'
+                }}
+                _focus={{
+                  boxShadow: 'md',
+                  bg: 'white'
+                }}
+              />
+              <InputRightElement width="5.5rem" pr={1}>
+                <Button 
+                  h="35px" 
+                  w="full"
+                  bgGradient="linear(to-r, #00838F, #2B3990)"
+                  color="white"
+                  fontSize="sm"
+                  fontWeight="500"
+                  isLoading={isSearching}
+                  onClick={() => searchLeads(searchQuery)}
+                  _hover={{
+                    bgGradient: 'linear(to-r, brand.tealHover, brand.blueHover)',
+                    transform: 'translateY(-1px)',
+                  }}
                 >
-                  <Box display="flex" alignItems="center" gap={3}>
-                    <Box
-                      p={2}
-                      borderRadius="full"
-                      bg="brand.gradient.accent"
-                    >
-                      <FiUser size={20} />
-                    </Box>
-                    <Box flex={1}>
-                      <Text fontWeight="500">
-                        {lead.first_name} {lead.last_name}
-                      </Text>
-                      <Box display="flex" gap={4} mt={1}>
-                        <Text fontSize="sm" color="gray.600" display="flex" alignItems="center" gap={1}>
-                          <FiMail size={14} />
-                          {lead.email}
+                  Search
+                </Button>
+              </InputRightElement>
+            </InputGroup>
+          </Box>
+
+          {searchQuery && results.length > 0 && (
+            <Box
+              position="absolute"
+              top="calc(100% + 8px)"
+              left={0}
+              right={0}
+              bg="white"
+              borderRadius="lg"
+              boxShadow="xl"
+              border="1px"
+              borderColor="gray.100"
+              maxH="400px"
+              overflowY="auto"
+              zIndex={1000}
+            >
+              <VStack spacing={0} align="stretch">
+                {results.map((lead) => (
+                  <Box
+                    key={lead.id}
+                    p={4}
+                    cursor="pointer"
+                    _hover={{ bg: 'gray.50' }}
+                    onClick={() => handleResultClick(lead)}
+                    borderBottom="1px"
+                    borderColor="gray.100"
+                  >
+                    <Box display="flex" alignItems="center" gap={3}>
+                      <Box
+                        p={2}
+                        borderRadius="full"
+                        bg="brand.gradient.accent"
+                      >
+                        <FiUser size={20} />
+                      </Box>
+                      <Box flex={1}>
+                        <Text fontWeight="500">
+                          {lead.first_name} {lead.last_name}
                         </Text>
-                        {lead.company_name && (
+                        <Box display="flex" gap={4} mt={1}>
                           <Text fontSize="sm" color="gray.600" display="flex" alignItems="center" gap={1}>
-                            <FiBriefcase size={14} />
-                            {lead.company_name}
+                            <FiMail size={14} />
+                            {lead.email}
                           </Text>
-                        )}
+                          {lead.company_name && (
+                            <Text fontSize="sm" color="gray.600" display="flex" alignItems="center" gap={1}>
+                              <FiBriefcase size={14} />
+                              {lead.company_name}
+                            </Text>
+                          )}
+                        </Box>
                       </Box>
                     </Box>
                   </Box>
-                </Box>
-              ))}
-            </VStack>
-          </Box>
-        )}
-      </Box>
+                ))}
+              </VStack>
+            </Box>
+          )}
+        </Box>
+
+        <Button
+          leftIcon={<FiUserPlus />}
+          onClick={() => navigate('/leads/new')}
+          ml={{ base: 0, md: 4 }}
+          size={{ base: "md", lg: "lg" }}
+          bgGradient="linear(to-r, #00838F, #2B3990)"
+          color="white"
+          w={{ base: "full", md: "auto" }}
+          _hover={{
+            bgGradient: 'linear(to-r, brand.tealHover, brand.blueHover)',
+            transform: 'translateY(-1px)',
+            boxShadow: 'lg',
+          }}
+          transition="all 0.2s"
+        >
+          Create New Lead
+        </Button>
+      </Flex>
     </Box>
   )
 }
