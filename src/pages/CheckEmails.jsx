@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom'
 import PageHeader from '../components/PageHeader'
 import PageContainer from '../components/PageContainer'
 import Card from '../components/Card'
+import axios from 'axios'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -104,15 +105,14 @@ function CheckEmails() {
   const processEmails = async () => {
     setIsProcessing(true)
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/process-emails`, {
-        method: 'POST',
+      // Call the API to process emails - using the correct endpoint from the docs
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/leads/process-emails`, {}, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       })
-      
-      if (!response.ok) throw new Error('Failed to process emails')
-      
-      const emailData = await response.json()
 
-      // Create activities for the newly created leads
+      // Get newly created leads from email
       const { data: leads, error: leadsError } = await supabase
         .from('leads')
         .select('*')
@@ -145,6 +145,9 @@ function CheckEmails() {
         }
       }
 
+      // Refresh the data and show success message
+      await fetchData()
+      
       toast({
         title: 'Success',
         description: 'Emails processed and activities created',
@@ -153,12 +156,11 @@ function CheckEmails() {
         isClosable: true,
       })
 
-      await fetchData()
     } catch (error) {
-      console.error('Process error:', error)
+      console.error('Email processing error:', error)
       toast({
         title: 'Error',
-        description: error.message || 'Failed to process emails',
+        description: error.response?.data?.detail || 'Failed to process emails',
         status: 'error',
         duration: 5000,
         isClosable: true,
