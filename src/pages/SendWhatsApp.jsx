@@ -13,14 +13,22 @@ import {
   List,
   ListItem,
   useToast,
+  Center,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverBody,
+  Input,
 } from '@chakra-ui/react'
-import { FiEdit2, FiSend } from 'react-icons/fi'
+import { FiEdit2, FiSend, FiCalendar } from 'react-icons/fi'
 import axios from 'axios'
 import { createClient } from '@supabase/supabase-js'
 import PageHeader from '../components/PageHeader'
 import PageContainer from '../components/PageContainer'
 import Card from '../components/Card'
 import { typography } from '../theme/constants'
+import DatePicker from 'react-datepicker'
+import "react-datepicker/dist/react-datepicker.css"
 
 const API_URL = import.meta.env.VITE_API_URL
 const supabase = createClient(
@@ -36,13 +44,15 @@ function SendWhatsApp() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState('all')
+  const [scheduleDate, setScheduleDate] = useState(null)
   const toast = useToast()
 
   useEffect(() => {
-    fetchLeads()
+    fetchInitialData()
   }, [])
 
-  const fetchLeads = async () => {
+  const fetchInitialData = async () => {
+    setIsLoading(true)
     try {
       const { data, error } = await supabase
         .from('leads')
@@ -73,31 +83,50 @@ function SendWhatsApp() {
   const generateMessageDraft = async (lead) => {
     setIsGenerating(true)
     try {
+      // First fetch recent activities
+      const { data: activities, error: activitiesError } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('lead_id', lead.id)
+        .order('activity_datetime', { ascending: false })
+        .limit(5)
+
+      if (activitiesError) throw activitiesError
+
+      // Format recent activities
+      const recentActivities = activities?.length 
+        ? activities.map(act => 
+            `${new Date(act.activity_datetime).toLocaleDateString()}: ${act.activity_type} - ${act.body || 'No details'}`
+          ).join('\n')
+        : 'No previous activities'
+
       const payload = {
         model: "deepseek-r1-distill-llama-70b",
         messages: [
           {
             role: "system",
-            content: `You are an AI assistant helping to generate WhatsApp messages.
+            content: `You are an AI assistant helping to generate WhatsApp messages for leads.
 
-Generate a short, friendly WhatsApp message for a lead with these details:
+Generate a short, professional WhatsApp message for a lead with these details:
 Name: ${lead.first_name} ${lead.last_name}
 Company: ${lead.company_name || 'Not specified'}
 Status: ${lead.status}
+Phone: ${lead.phone_number}
 
-The message should:
-1. Be professional but conversational
-2. Highlight SmartLead CRM's value
-3. Include a clear call to action
-4. Be appropriate for WhatsApp (brief)
+Recent Activities:
+${recentActivities}
+
+Keep the message friendly but professional, and reference their recent activity if relevant.
+Keep the message under 200 characters.
+Do not include emojis.
 
 IMPORTANT: Respond with ONLY a JSON object in this EXACT format:
-{"message": "Hi [name], [your message here]"}
+{"message": "Hi [name], this is Chris from SmartLead CRM..."}
 
 Do not include any other text, markdown, or formatting - ONLY the JSON object.`
           }
         ],
-        temperature: 0.5,
+        temperature: 0.7,
         max_tokens: 2048,
         top_p: 0.9
       }
@@ -132,7 +161,7 @@ Do not include any other text, markdown, or formatting - ONLY the JSON object.`
     }
   }
 
-  const sendWhatsApp = async () => {
+  const sendWhatsApp = async (scheduleTime = null) => {
     if (!selectedLead?.id || !message) {
       toast({
         title: 'Error',
@@ -147,11 +176,17 @@ Do not include any other text, markdown, or formatting - ONLY the JSON object.`
     setIsSending(true)
     try {
       const encodedMessage = encodeURIComponent(message)
-      const url = `${API_URL}/leads/${selectedLead.id}/send-whatsapp?message=${encodedMessage}`
+      const url = `${API_URL}/leads/${selectedLead.id}/send-whatsapp`
+      
+      const payload = {
+        message: message,
+        scheduled_time: scheduleTime
+      }
 
       const response = await axios({
         method: 'post',
         url: url,
+        data: payload,
         headers: {
           'Content-Type': 'application/json'
         }
@@ -160,15 +195,30 @@ Do not include any other text, markdown, or formatting - ONLY the JSON object.`
       console.log('WhatsApp response:', response.data)
 
       toast({
-        title: 'Message Sent',
-        description: 'WhatsApp message has been processed',
+        title: scheduleTime ? 'Message Scheduled' : 'Message Sent',
+        description: scheduleTime ? 
+          'WhatsApp message has been scheduled' : 
+          'WhatsApp message has been sent',
         status: 'success',
         duration: 5000,
         isClosable: true,
       })
 
+      // Create activity record
+      await supabase.from('activities').insert([{
+        activity_type: 'whatsapp_message',
+        activity_datetime: new Date().toISOString(),
+        lead_id: selectedLead.id,
+        body: `WhatsApp message ${scheduleTime ? 'scheduled' : 'sent'}: ${message}`,
+        metadata: {
+          message,
+          scheduled_time: scheduleTime
+        }
+      }])
+
       setSelectedLead(null)
       setMessage('')
+      setScheduleDate(null)
 
     } catch (error) {
       console.error('Send error details:', {
@@ -201,8 +251,21 @@ Do not include any other text, markdown, or formatting - ONLY the JSON object.`
     return colors[status] || 'gray'
   }
 
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <Center h="200px">
+          <VStack spacing={4}>
+            <Spinner size="xl" color="blue.500" />
+            <Text>Loading WhatsApp data...</Text>
+          </VStack>
+        </Center>
+      </PageContainer>
+    )
+  }
+
   return (
-    <Box>
+    <PageContainer>
       <PageHeader
         title="Send WhatsApp"
         description="Select a lead and compose personalized WhatsApp messages"
@@ -274,19 +337,66 @@ Do not include any other text, markdown, or formatting - ONLY the JSON object.`
                     <Textarea
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
-                      placeholder="Type your message..."
+                      placeholder="Enter your message..."
                       rows={6}
+                      isDisabled={isGenerating}
                     />
                   </FormControl>
-                  <Button
-                    colorScheme="green"
-                    leftIcon={<FiSend />}
-                    isLoading={isSending}
-                    onClick={sendWhatsApp}
-                    alignSelf="flex-start"
-                  >
-                    Send WhatsApp
-                  </Button>
+
+                  <HStack spacing={4}>
+                    <Button
+                      leftIcon={<FiSend />}
+                      colorScheme="blue"
+                      onClick={() => sendWhatsApp()}
+                      isLoading={isSending}
+                    >
+                      Send Now
+                    </Button>
+
+                    <Popover>
+                      <PopoverTrigger>
+                        <Button leftIcon={<FiCalendar />}>
+                          Schedule
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent p={4}>
+                        <PopoverBody>
+                          <VStack spacing={4}>
+                            <FormControl>
+                              <FormLabel>Select Date and Time</FormLabel>
+                              <DatePicker
+                                selected={scheduleDate}
+                                onChange={setScheduleDate}
+                                showTimeSelect
+                                dateFormat="MMMM d, yyyy h:mm aa"
+                                minDate={new Date()}
+                                customInput={
+                                  <Input />
+                                }
+                              />
+                            </FormControl>
+                            <Button
+                              colorScheme="blue"
+                              w="full"
+                              onClick={() => sendWhatsApp(scheduleDate.toISOString())}
+                              isDisabled={!scheduleDate}
+                            >
+                              Schedule Message
+                            </Button>
+                          </VStack>
+                        </PopoverBody>
+                      </PopoverContent>
+                    </Popover>
+
+                    <Button
+                      leftIcon={<FiEdit2 />}
+                      variant="ghost"
+                      onClick={() => generateMessageDraft(selectedLead)}
+                      isLoading={isGenerating}
+                    >
+                      Regenerate
+                    </Button>
+                  </HStack>
                 </VStack>
               ) : (
                 <Text color="gray.500">Select a lead to compose a message</Text>
@@ -295,7 +405,7 @@ Do not include any other text, markdown, or formatting - ONLY the JSON object.`
           </Box>
         </HStack>
       </Box>
-    </Box>
+    </PageContainer>
   )
 }
 

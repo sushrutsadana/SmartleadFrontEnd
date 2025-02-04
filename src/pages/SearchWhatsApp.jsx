@@ -10,8 +10,12 @@ import {
   Grid,
   Icon,
   useToast,
+  Box,
+  Button,
+  useColorModeValue,
+  useClipboard,
 } from '@chakra-ui/react'
-import { FiMessageSquare, FiUser, FiArrowRight, FiUsers } from 'react-icons/fi'
+import { FiMessageSquare, FiUser, FiArrowRight, FiUsers, FiCopy, FiCheckCircle } from 'react-icons/fi'
 import { createClient } from '@supabase/supabase-js'
 import { useNavigate } from 'react-router-dom'
 import PageHeader from '../components/PageHeader'
@@ -30,6 +34,9 @@ function SearchWhatsApp() {
   const [isLoading, setIsLoading] = useState(true)
   const toast = useToast()
   const navigate = useNavigate()
+  const bgHover = useColorModeValue('gray.50', 'gray.700')
+  const { hasCopied: hasPhoneCopied, onCopy: onPhoneCopy } = useClipboard("+1 415 523 8886")
+  const { hasCopied: hasCodeCopied, onCopy: onCodeCopy } = useClipboard("join balloon-differ")
 
   useEffect(() => {
     fetchData()
@@ -142,81 +149,72 @@ function SearchWhatsApp() {
         description="View received WhatsApp messages and generated leads"
       />
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={6}>
+      {/* Sandbox Notice Card */}
+      <Box px={6} mb={6}>
+        <Card bg="blue.50" p={4} maxW="full">
+          <HStack spacing={4} align="start">
+            <Icon as={FiMessageSquare} boxSize={6} color="blue.500" mt={1} />
+            <VStack align="start" spacing={2}>
+              <Text fontWeight="bold" color="blue.800">
+                Connect to Twilio Sandbox
+              </Text>
+              <Text color="blue.600" fontSize="sm">
+                To see WhatsApp messages here, send "join balloon-differ" to{' '}
+                <Button
+                  variant="link"
+                  color="blue.600"
+                  fontSize="sm"
+                  onClick={onPhoneCopy}
+                  rightIcon={hasPhoneCopied ? <FiCheckCircle /> : <FiCopy />}
+                >
+                  +1 415 523 8886
+                </Button>
+              </Text>
+              <Button
+                size="sm"
+                colorScheme="blue"
+                onClick={() => window.open('https://wa.me/14155238886?text=join%20balloon-differ', '_blank')}
+              >
+                Open WhatsApp
+              </Button>
+            </VStack>
+          </HStack>
+        </Card>
+      </Box>
+
+      <Grid templateColumns="repeat(2, 1fr)" gap={6} px={6}>
         {/* Messages Section */}
         <Card>
           <VStack align="stretch" spacing={6}>
             <Text {...typography.heading.section}>
               Received Messages
             </Text>
-
+            
             {isLoading ? (
               <LoadingState />
             ) : messages.length === 0 ? (
               <EmptyState type="messages" icon={FiMessageSquare} />
             ) : (
-              <List spacing={4}>
+              <List spacing={3}>
                 {messages.map((message) => (
-                  <ListItem
+                  <ListItem 
                     key={message.id}
                     p={4}
-                    borderWidth="1px"
-                    borderRadius="lg"
+                    border="1px"
                     borderColor="gray.200"
-                    _hover={{
-                      borderColor: 'green.200',
-                      boxShadow: 'sm',
-                    }}
-                    transition="all 0.2s"
+                    borderRadius="md"
+                    _hover={{ borderColor: 'blue.200' }}
                   >
-                    <VStack align="stretch" spacing={3}>
+                    <VStack align="stretch" spacing={2}>
                       <HStack justify="space-between">
-                        <HStack spacing={2}>
-                          <Icon as={FiMessageSquare} color="green.500" />
-                          <Text fontWeight="600">
-                            WhatsApp Message
-                          </Text>
-                        </HStack>
-                        <Text color="gray.500" fontSize="sm">
+                        <Text fontSize="sm" color="gray.600">
                           {formatDate(message.activity_datetime)}
                         </Text>
+                        <Badge colorScheme="blue">
+                          {message.activity_type}
+                        </Badge>
                       </HStack>
-
-                      <Text color="gray.700" whiteSpace="pre-wrap">
-                        {message.body}
-                      </Text>
-
-                      {message.leads && (
-                        <HStack
-                          spacing={4}
-                          p={3}
-                          bg="gray.50"
-                          borderRadius="md"
-                          onClick={() => navigate(`/leads/${message.leads.id}`)}
-                          cursor="pointer"
-                          _hover={{ bg: 'gray.100' }}
-                        >
-                          <Icon as={FiUser} color="gray.500" />
-                          <VStack align="start" spacing={1} flex={1}>
-                            <Text fontWeight="500">
-                              {message.leads.first_name} {message.leads.last_name}
-                            </Text>
-                            <HStack spacing={3} color="gray.600" fontSize="sm">
-                              <Text>{message.leads.phone_number}</Text>
-                              {message.leads.company_name && (
-                                <>
-                                  <Text>•</Text>
-                                  <Text>{message.leads.company_name}</Text>
-                                </>
-                              )}
-                            </HStack>
-                          </VStack>
-                          <Badge colorScheme={getStatusColor(message.leads.status)}>
-                            {message.leads.status}
-                          </Badge>
-                          <Icon as={FiArrowRight} color="gray.400" />
-                        </HStack>
-                      )}
+                      <Text>{message.body}</Text>
                     </VStack>
                   </ListItem>
                 ))}
@@ -231,48 +229,39 @@ function SearchWhatsApp() {
             <Text {...typography.heading.section}>
               Generated Leads
             </Text>
-
+            
             {isLoading ? (
               <LoadingState />
             ) : leads.length === 0 ? (
               <EmptyState type="leads" icon={FiUsers} />
             ) : (
-              <List spacing={4}>
+              <List spacing={3}>
                 {leads.map((lead) => (
-                  <ListItem
+                  <ListItem 
                     key={lead.id}
                     p={4}
-                    borderWidth="1px"
-                    borderRadius="lg"
+                    border="1px"
                     borderColor="gray.200"
+                    borderRadius="md"
                     cursor="pointer"
                     onClick={() => navigate(`/leads/${lead.id}`)}
-                    _hover={{
-                      borderColor: 'blue.200',
-                      boxShadow: 'sm',
-                    }}
-                    transition="all 0.2s"
+                    _hover={{ borderColor: 'blue.200' }}
                   >
-                    <HStack spacing={4}>
-                      <Icon as={FiUser} color="gray.500" />
-                      <VStack align="start" spacing={1} flex={1}>
-                        <Text fontWeight="500">
-                          {lead.first_name} {lead.last_name}
-                        </Text>
-                        <HStack spacing={3} color="gray.600" fontSize="sm">
-                          <Text>{lead.phone_number}</Text>
-                          {lead.company_name && (
-                            <>
-                              <Text>•</Text>
-                              <Text>{lead.company_name}</Text>
-                            </>
-                          )}
-                        </HStack>
-                      </VStack>
+                    <HStack justify="space-between">
+                      <HStack spacing={4}>
+                        <Icon as={FiUser} color="blue.500" />
+                        <VStack align="start" spacing={0}>
+                          <Text fontWeight="medium">
+                            {lead.first_name} {lead.last_name}
+                          </Text>
+                          <Text fontSize="sm" color="gray.600">
+                            {lead.phone_number}
+                          </Text>
+                        </VStack>
+                      </HStack>
                       <Badge colorScheme={getStatusColor(lead.status)}>
                         {lead.status}
                       </Badge>
-                      <Icon as={FiArrowRight} color="gray.400" />
                     </HStack>
                   </ListItem>
                 ))}

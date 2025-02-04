@@ -1,4 +1,6 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { supabase } from './supabaseClient'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Database from './pages/Database'
@@ -9,12 +11,51 @@ import LeadCard from './pages/LeadCard'
 import SendEmails from './pages/SendEmails'
 import SendWhatsApp from './pages/SendWhatsApp'
 import SearchWhatsApp from './pages/SearchWhatsApp'
+import Auth from './components/Auth'
+import SearchSocial from './pages/SearchSocial'
+import Admin from './pages/Admin'
 
+const ProtectedRoute = ({ children }) => {
+  const [session, setSession] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setLoading(false)
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      setLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  if (loading) return null
+
+  if (!session) {
+    return <Navigate to="/login" replace />
+  }
+
+  return children
+}
 
 export const router = createBrowserRouter([
   {
+    path: '/login',
+    element: <Auth />
+  },
+  {
     path: '/',
-    element: <Layout />,
+    element: (
+      <ProtectedRoute>
+        <Layout />
+      </ProtectedRoute>
+    ),
     children: [
       {
         path: '/',
@@ -56,6 +97,14 @@ export const router = createBrowserRouter([
         path: '/whatsapp',
         element: <SearchWhatsApp />
       },
-    ],
-  },
+      {
+        path: '/social',
+        element: <SearchSocial />
+      },
+      {
+        path: '/admin',
+        element: <Admin />
+      }
+    ]
+  }
 ]) 

@@ -13,6 +13,7 @@ import {
   Icon,
   useToast,
   Spinner,
+  Center,
 } from '@chakra-ui/react'
 import { FiMail, FiUser, FiArrowRight, FiUsers, FiRefreshCw } from 'react-icons/fi'
 import { createClient } from '@supabase/supabase-js'
@@ -45,6 +46,7 @@ function CheckEmails() {
   }, [])
 
   const fetchData = async () => {
+    setIsLoading(true)
     try {
       const { data: emailActivities, error: emailError } = await supabase
         .from('activities')
@@ -201,6 +203,19 @@ function CheckEmails() {
     return colors[status] || 'gray'
   }
 
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <Center h="200px">
+          <VStack spacing={4}>
+            <Spinner size="xl" color="blue.500" />
+            <Text>Loading emails...</Text>
+          </VStack>
+        </Center>
+      </PageContainer>
+    )
+  }
+
   return (
     <PageContainer>
       <PageHeader
@@ -244,12 +259,7 @@ function CheckEmails() {
           <VStack align="stretch" spacing={4}>
             <Text fontWeight="bold" fontSize="lg">Received Emails</Text>
             
-            {isLoading ? (
-              <HStack justify="center" py={4}>
-                <Spinner />
-                <Text>Loading emails...</Text>
-              </HStack>
-            ) : emails.length === 0 ? (
+            {emails.length === 0 ? (
               <Text color="gray.500" textAlign="center" py={4}>No emails found</Text>
             ) : (
               <List spacing={3}>
@@ -285,12 +295,7 @@ function CheckEmails() {
           <VStack align="stretch" spacing={4}>
             <Text fontWeight="bold" fontSize="lg">Generated Leads</Text>
             
-            {isLoading ? (
-              <HStack justify="center" py={4}>
-                <Spinner />
-                <Text>Loading leads...</Text>
-              </HStack>
-            ) : leads.length === 0 ? (
+            {leads.length === 0 ? (
               <Text color="gray.500" textAlign="center" py={4}>No leads found</Text>
             ) : (
               <List spacing={3}>

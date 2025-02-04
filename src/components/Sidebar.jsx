@@ -1,4 +1,4 @@
-import { Box, VStack, HStack, Text, Icon, Divider } from '@chakra-ui/react'
+import { Box, VStack, HStack, Text, Icon, Divider, Button, Flex } from '@chakra-ui/react'
 import { Link, useLocation } from 'react-router-dom'
 import { 
   FiHome, 
@@ -6,8 +6,11 @@ import {
   FiMessageSquare, 
   FiPhone,
   FiDatabase,
-  FiSearch
+  FiSearch,
+  FiLogOut,
+  FiSettings
 } from 'react-icons/fi'
+import { supabase } from '../supabaseClient'
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -50,6 +53,10 @@ function Sidebar({ isMobile, onClose }) {
     </Text>
   )
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+  }
+
   return (
     <Box
       w="full"
@@ -58,6 +65,7 @@ function Sidebar({ isMobile, onClose }) {
       color="white"
       py={6}
       overflowY="auto"
+      position="relative"
     >
       {/* Logo */}
       <Box px={6} mb={8}>
@@ -69,7 +77,7 @@ function Sidebar({ isMobile, onClose }) {
         </Text>
       </Box>
 
-      <VStack spacing={6} align="stretch">
+      <VStack spacing={6} align="stretch" h="calc(100vh - 200px)">
         {/* Main Navigation */}
         <Box>
           <NavItem icon={FiHome} to="/dashboard">
@@ -120,6 +128,37 @@ function Sidebar({ isMobile, onClose }) {
           <NavItem icon={FiDatabase} to="/database">
             Database
           </NavItem>
+        </Box>
+
+        {/* Add Admin Section */}
+        <Box>
+          <NavItem icon={FiSettings} to="/admin">
+            Admin Settings
+          </NavItem>
+        </Box>
+
+        {/* Logout Button at Bottom */}
+        <Box mt="auto" px={4}>
+          <Button 
+            w="full"
+            size="lg"
+            onClick={handleLogout}
+            leftIcon={<FiLogOut />}
+            bg="red.100"
+            color="red.600"
+            _hover={{ 
+              bg: "red.200",
+              transform: "scale(1.02)",
+              shadow: "md"
+            }}
+            _active={{
+              bg: "red.300"
+            }}
+            transition="all 0.2s"
+            fontWeight="600"
+          >
+            Logout
+          </Button>
         </Box>
       </VStack>
     </Box>
