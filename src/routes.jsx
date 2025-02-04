@@ -7,6 +7,8 @@ import CreateLead from './pages/CreateLead'
 import MakeCall from './pages/MakeCall'
 import LeadCard from './pages/LeadCard'
 import SendEmails from './pages/SendEmails'
+import SendWhatsApp from './pages/SendWhatsApp'
+import SearchWhatsApp from './pages/SearchWhatsApp'
 
 
 export const router = createBrowserRouter([
@@ -45,6 +47,14 @@ export const router = createBrowserRouter([
       {
         path: '/send-emails',
         element: <SendEmails />
+      },
+      {
+        path: '/send-whatsapp',
+        element: <SendWhatsApp />
+      },
+      {
+        path: '/whatsapp',
+        element: <SearchWhatsApp />
       },
     ],
   },
