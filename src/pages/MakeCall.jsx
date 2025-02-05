@@ -35,6 +35,7 @@ import "react-datepicker/dist/react-datepicker.css"
 import PageHeader from '../components/PageHeader'
 import PageContainer from '../components/PageContainer'
 import Card from '../components/Card'
+import { useLocation } from 'react-router-dom'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -81,10 +82,18 @@ function MakeCall() {
     duration: 240, // 4 minutes in seconds
   })
   const toast = useToast()
+  const location = useLocation()
 
   useEffect(() => {
     fetchLeads()
   }, [])
+
+  useEffect(() => {
+    if (location.state?.selectedLead) {
+      setSelectedLead(location.state.selectedLead)
+      generateScript(location.state.selectedLead)
+    }
+  }, [location])
 
   const fetchLeads = async () => {
     try {

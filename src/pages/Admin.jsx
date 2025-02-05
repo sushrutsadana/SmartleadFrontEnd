@@ -19,6 +19,8 @@ function Admin() {
   })
   const toast = useToast()
   const { hasCopied, onCopy } = useClipboard('smartleadplatform@gmail.com')
+  const { hasCopied: hasWhatsAppCopied, onCopy: onWhatsAppCopy } = useClipboard('+1 415 523 8886')
+  const { hasCopied: hasJoinCodeCopied, onCopy: onJoinCodeCopy } = useClipboard('join balloon-differ')
 
   useEffect(() => {
     // Load current prompts (including any customizations)
@@ -67,6 +69,71 @@ function Admin() {
       />
 
       <SimpleGrid columns={1} spacing={6} px={6}>
+        {/* WhatsApp Configuration Card */}
+        <Card>
+          <VStack spacing={6} align="stretch" p={6}>
+            <HStack spacing={4}>
+              <Icon as={FiMessageSquare} boxSize={6} color="green.500" />
+              <Text fontSize="xl" fontWeight="bold">
+                WhatsApp Configuration
+              </Text>
+            </HStack>
+            
+            <Box bg="gray.50" p={4} borderRadius="md">
+              <VStack align="start" spacing={2}>
+                <Text fontWeight="medium">Connected WhatsApp Service:</Text>
+                <HStack>
+                  <Text color="gray.600">Twilio Sandbox</Text>
+                  <Badge colorScheme="green">Connected</Badge>
+                </HStack>
+                <Divider my={2} />
+                <Text fontWeight="medium" size="sm">Sandbox Number:</Text>
+                <HStack>
+                  <Text color="gray.600">+1 415 523 8886</Text>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    leftIcon={hasWhatsAppCopied ? <FiCheckCircle /> : <FiCopy />}
+                    onClick={onWhatsAppCopy}
+                  >
+                    {hasWhatsAppCopied ? "Copied!" : "Copy"}
+                  </Button>
+                </HStack>
+                <Text fontWeight="medium" size="sm">Join Code:</Text>
+                <HStack>
+                  <Text color="gray.600">join balloon-differ</Text>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    leftIcon={hasJoinCodeCopied ? <FiCheckCircle /> : <FiCopy />}
+                    onClick={onJoinCodeCopy}
+                  >
+                    {hasJoinCodeCopied ? "Copied!" : "Copy"}
+                  </Button>
+                </HStack>
+              </VStack>
+            </Box>
+
+            <Box bg="blue.50" p={4} borderRadius="md">
+              <VStack align="start" spacing={2}>
+                <Text fontWeight="medium" color="blue.800">
+                  Need to change WhatsApp configuration?
+                </Text>
+                <Text color="blue.600">
+                  Contact the administrator to upgrade to a production WhatsApp Business account or modify settings.
+                </Text>
+                <Button
+                  size="sm"
+                  colorScheme="blue"
+                  onClick={() => window.location.href = 'mailto:smartleadplatform@gmail.com'}
+                >
+                  Contact Admin
+                </Button>
+              </VStack>
+            </Box>
+          </VStack>
+        </Card>
+
         {/* Email Configuration Card */}
         <Card>
           <VStack spacing={6} align="stretch" p={6}>

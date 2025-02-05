@@ -149,39 +149,6 @@ function SearchWhatsApp() {
         description="View received WhatsApp messages and generated leads"
       />
 
-      {/* Sandbox Notice Card */}
-      <Box px={6} mb={6}>
-        <Card bg="blue.50" p={4} maxW="full">
-          <HStack spacing={4} align="start">
-            <Icon as={FiMessageSquare} boxSize={6} color="blue.500" mt={1} />
-            <VStack align="start" spacing={2}>
-              <Text fontWeight="bold" color="blue.800">
-                Connect to Twilio Sandbox
-              </Text>
-              <Text color="blue.600" fontSize="sm">
-                To see WhatsApp messages here, send "join balloon-differ" to{' '}
-                <Button
-                  variant="link"
-                  color="blue.600"
-                  fontSize="sm"
-                  onClick={onPhoneCopy}
-                  rightIcon={hasPhoneCopied ? <FiCheckCircle /> : <FiCopy />}
-                >
-                  +1 415 523 8886
-                </Button>
-              </Text>
-              <Button
-                size="sm"
-                colorScheme="blue"
-                onClick={() => window.open('https://wa.me/14155238886?text=join%20balloon-differ', '_blank')}
-              >
-                Open WhatsApp
-              </Button>
-            </VStack>
-          </HStack>
-        </Card>
-      </Box>
-
       <Grid templateColumns="repeat(2, 1fr)" gap={6} px={6}>
         {/* Messages Section */}
         <Card>

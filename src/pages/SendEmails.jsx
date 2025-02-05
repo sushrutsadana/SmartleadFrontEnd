@@ -31,6 +31,7 @@ import PageHeader from '../components/PageHeader'
 import Card from '../components/Card'
 import { brandColors, spacing, typography } from '../theme/constants'
 import PageContainer from '../components/PageContainer'
+import { useLocation } from 'react-router-dom'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -51,10 +52,19 @@ function SendEmails() {
   const [scheduleDate, setScheduleDate] = useState(null)
   const [selectedStatus, setSelectedStatus] = useState('all')
   const toast = useToast()
+  const location = useLocation()
 
   useEffect(() => {
     fetchLeads()
   }, [])
+
+  useEffect(() => {
+    // If a lead was passed through navigation
+    if (location.state?.selectedLead) {
+      setSelectedLead(location.state.selectedLead)
+      generateEmailDraft(location.state.selectedLead)
+    }
+  }, [location])
 
   const fetchLeads = async () => {
     try {

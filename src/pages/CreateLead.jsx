@@ -17,6 +17,7 @@ import {
   HStack,
 } from '@chakra-ui/react'
 import axios from 'axios'
+import PhoneInput from '../components/PhoneInput'
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -133,12 +134,13 @@ function CreateLead() {
                 </FormControl>
 
                 <FormControl>
-                  <FormLabel>Phone</FormLabel>
-                  <Input
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    placeholder="+1 (555) 123-4567"
+                  <FormLabel>Phone Number</FormLabel>
+                  <PhoneInput
+                    value={formData.phone_number || ''}
+                    onChange={(value) => setFormData(prev => ({
+                      ...prev,
+                      phone_number: value
+                    }))}
                   />
                 </FormControl>
 

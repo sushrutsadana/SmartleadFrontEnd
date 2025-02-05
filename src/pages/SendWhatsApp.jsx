@@ -29,6 +29,7 @@ import Card from '../components/Card'
 import { typography } from '../theme/constants'
 import DatePicker from 'react-datepicker'
 import "react-datepicker/dist/react-datepicker.css"
+import { useLocation } from 'react-router-dom'
 
 const API_URL = import.meta.env.VITE_API_URL
 const supabase = createClient(
@@ -46,10 +47,18 @@ function SendWhatsApp() {
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [scheduleDate, setScheduleDate] = useState(null)
   const toast = useToast()
+  const location = useLocation()
 
   useEffect(() => {
     fetchInitialData()
   }, [])
+
+  useEffect(() => {
+    if (location.state?.selectedLead) {
+      setSelectedLead(location.state.selectedLead)
+      generateMessageDraft(location.state.selectedLead)
+    }
+  }, [location])
 
   const fetchInitialData = async () => {
     setIsLoading(true)

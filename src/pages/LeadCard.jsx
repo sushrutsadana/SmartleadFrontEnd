@@ -25,9 +25,12 @@ import {
   Stack,
   Input,
   IconButton,
-  Tooltip
+  Tooltip,
+  Grid,
+  FormControl,
+  FormLabel
 } from '@chakra-ui/react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { createClient } from '@supabase/supabase-js'
 import { 
   FiMail, 
@@ -45,6 +48,7 @@ import {
 import axios from 'axios'
 import PageHeader from '../components/PageHeader'
 import PageContainer from '../components/PageContainer'
+import PhoneInput from '../components/PhoneInput'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -55,6 +59,7 @@ const API_URL = import.meta.env.VITE_API_URL
 
 function LeadCard() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [lead, setLead] = useState(null)
   const [loading, setLoading] = useState(true)
   const toast = useToast()
@@ -65,7 +70,13 @@ function LeadCard() {
   const [activities, setActivities] = useState([])
   const [loadingActivities, setLoadingActivities] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
-  const [editedLead, setEditedLead] = useState(null)
+  const [editedLead, setEditedLead] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    company_name: '',
+    phone_number: '',
+  })
 
   const statusOptions = [
     { value: 'new', label: 'New' },
@@ -78,10 +89,7 @@ function LeadCard() {
   useEffect(() => {
     fetchLead()
     fetchActivities()
-    if (lead) {
-      setEditedLead(lead)
-    }
-  }, [id, lead])
+  }, [id])
 
   const fetchLead = async () => {
     try {
@@ -93,6 +101,7 @@ function LeadCard() {
 
       if (error) throw error
       setLead(data)
+      setEditedLead(data)
     } catch (error) {
       toast({
         title: 'Error fetching lead',
@@ -250,58 +259,113 @@ function LeadCard() {
     }
   }
 
+  // Add phone number validation helper
+  const validatePhoneNumber = (phone) => {
+    // Basic validation - can be made more sophisticated
+    const cleaned = phone.replace(/\D/g, '')
+    return cleaned.length >= 10
+  }
+
+  // Update handleSave function
   const handleSave = async () => {
     setIsUpdating(true)
     try {
-      const { error } = await supabase
+      // Validate required fields
+      if (!editedLead.first_name || !editedLead.last_name || !editedLead.email) {
+        throw new Error('Name and email are required fields')
+      }
+
+      // Format phone number if present
+      let formattedPhone = editedLead.phone_number ? editedLead.phone_number.trim() : null
+      if (formattedPhone && !validatePhoneNumber(formattedPhone)) {
+        throw new Error('Please enter a valid phone number')
+      }
+
+      // Prepare update data
+      const updateData = {
+        first_name: editedLead.first_name.trim(),
+        last_name: editedLead.last_name.trim(),
+        email: editedLead.email.trim(),
+        company_name: editedLead.company_name?.trim() || null,
+        phone_number: formattedPhone
+      }
+
+      console.log('Updating lead with data:', updateData) // Debug log
+
+      // Update the lead in Supabase
+      const { data, error: updateError } = await supabase
         .from('leads')
-        .update({
-          first_name: editedLead.first_name,
-          last_name: editedLead.last_name,
-          email: editedLead.email,
-          company_name: editedLead.company_name
-        })
+        .update(updateData)
         .eq('id', id)
+        .select()
 
-      if (error) throw error
+      if (updateError) throw updateError
 
-      // Create activity for the edit
+      console.log('Supabase update response:', data) // Debug log
+
+      // Create activity log
       const { error: activityError } = await supabase
         .from('activities')
         .insert([
           {
             lead_id: id,
             activity_type: 'lead_updated',
-            body: 'Lead information updated',
+            body: `Lead information updated${formattedPhone ? ' (including phone number)' : ''}`,
             activity_datetime: new Date().toISOString()
           }
         ])
 
       if (activityError) throw activityError
 
-      setLead(editedLead)
+      // Update local state with the response data
+      setLead(data[0])
+      setEditedLead(data[0])
       setIsEditing(false)
       
       toast({
-        title: 'Lead Updated',
+        title: 'Lead updated successfully',
         status: 'success',
         duration: 3000,
-        isClosable: true,
       })
 
       // Refresh activities
       fetchActivities()
+
     } catch (error) {
+      console.error('Error updating lead:', error) // Debug log
       toast({
-        title: 'Error Updating Lead',
+        title: 'Error updating lead',
         description: error.message,
         status: 'error',
         duration: 5000,
-        isClosable: true,
       })
     } finally {
       setIsUpdating(false)
     }
+  }
+
+  const handleCancel = () => {
+    setEditedLead(lead)
+    setIsEditing(false)
+  }
+
+  // Add handlers for each action
+  const handleSendEmail = () => {
+    navigate('/send-emails', { 
+      state: { selectedLead: lead }
+    })
+  }
+
+  const handleMakeCall = () => {
+    navigate('/calls', {
+      state: { selectedLead: lead }
+    })
+  }
+
+  const handleSendWhatsApp = () => {
+    navigate('/send-whatsapp', {
+      state: { selectedLead: lead }
+    })
   }
 
   if (loading) {
@@ -348,48 +412,58 @@ function LeadCard() {
             >
               {isEditing ? (
                 <VStack align="stretch" spacing={4}>
-                  <HStack>
-                    <Input
-                      placeholder="First Name"
-                      value={editedLead.first_name}
-                      onChange={(e) => setEditedLead(prev => ({
-                        ...prev,
-                        first_name: e.target.value
-                      }))}
-                      bg="whiteAlpha.900"
-                      color="gray.800"
-                    />
-                    <Input
-                      placeholder="Last Name"
-                      value={editedLead.last_name}
-                      onChange={(e) => setEditedLead(prev => ({
-                        ...prev,
-                        last_name: e.target.value
-                      }))}
-                      bg="whiteAlpha.900"
-                      color="gray.800"
-                    />
-                  </HStack>
-                  <Input
-                    placeholder="Email"
-                    value={editedLead.email}
-                    onChange={(e) => setEditedLead(prev => ({
-                      ...prev,
-                      email: e.target.value
-                    }))}
-                    bg="whiteAlpha.900"
-                    color="gray.800"
-                  />
-                  <Input
-                    placeholder="Company Name"
-                    value={editedLead.company_name}
-                    onChange={(e) => setEditedLead(prev => ({
-                      ...prev,
-                      company_name: e.target.value
-                    }))}
-                    bg="whiteAlpha.900"
-                    color="gray.800"
-                  />
+                  <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={6}>
+                    <FormControl>
+                      <FormLabel>First Name</FormLabel>
+                      <Input
+                        value={editedLead.first_name}
+                        onChange={(e) => setEditedLead(prev => ({
+                          ...prev,
+                          first_name: e.target.value
+                        }))}
+                      />
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel>Last Name</FormLabel>
+                      <Input
+                        value={editedLead.last_name}
+                        onChange={(e) => setEditedLead(prev => ({
+                          ...prev,
+                          last_name: e.target.value
+                        }))}
+                      />
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel>Email</FormLabel>
+                      <Input
+                        value={editedLead.email}
+                        onChange={(e) => setEditedLead(prev => ({
+                          ...prev,
+                          email: e.target.value
+                        }))}
+                      />
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel>Phone Number</FormLabel>
+                      <PhoneInput
+                        value={editedLead.phone_number || ''}
+                        onChange={(value) => setEditedLead(prev => ({
+                          ...prev,
+                          phone_number: value
+                        }))}
+                      />
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel>Company</FormLabel>
+                      <Input
+                        value={editedLead.company_name || ''}
+                        onChange={(e) => setEditedLead(prev => ({
+                          ...prev,
+                          company_name: e.target.value
+                        }))}
+                      />
+                    </FormControl>
+                  </Grid>
                   <HStack>
                     <Button
                       leftIcon={<FiCheck />}
@@ -402,10 +476,7 @@ function LeadCard() {
                     </Button>
                     <Button
                       leftIcon={<FiX />}
-                      onClick={() => {
-                        setIsEditing(false)
-                        setEditedLead(lead)
-                      }}
+                      onClick={handleCancel}
                       size="sm"
                       variant="ghost"
                       _hover={{ bg: 'whiteAlpha.200' }}
@@ -494,40 +565,26 @@ function LeadCard() {
                     border="1px solid"
                     borderColor="gray.100"
                   >
-                    <HStack>
-                      <Box
-                        p={2}
-                        borderRadius="lg"
-                        bg="brand.gradient.accent"
-                      >
-                        <Icon as={FiMail} color="brand.teal" />
+                    <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={6}>
+                      <Box>
+                        <Text color="gray.600" fontSize="sm">Name</Text>
+                        <Text fontSize="lg" fontWeight="medium">
+                          {lead.first_name} {lead.last_name}
+                        </Text>
                       </Box>
-                      <Text>{lead.email}</Text>
-                    </HStack>
-                    {lead.phone && (
-                      <HStack>
-                        <Box
-                          p={2}
-                          borderRadius="lg"
-                          bg="brand.gradient.accent"
-                        >
-                          <Icon as={FiPhone} color="brand.teal" />
-                        </Box>
-                        <Text>{lead.phone}</Text>
-                      </HStack>
-                    )}
-                    {lead.company_name && (
-                      <HStack>
-                        <Box
-                          p={2}
-                          borderRadius="lg"
-                          bg="brand.gradient.accent"
-                        >
-                          <Icon as={FiBriefcase} color="brand.teal" />
-                        </Box>
-                        <Text>{lead.company_name}</Text>
-                      </HStack>
-                    )}
+                      <Box>
+                        <Text color="gray.600" fontSize="sm">Email</Text>
+                        <Text fontSize="lg">{lead.email}</Text>
+                      </Box>
+                      <Box>
+                        <Text color="gray.600" fontSize="sm">Phone</Text>
+                        <Text fontSize="lg">{lead.phone_number || 'Not provided'}</Text>
+                      </Box>
+                      <Box>
+                        <Text color="gray.600" fontSize="sm">Company</Text>
+                        <Text fontSize="lg">{lead.company_name || 'Not provided'}</Text>
+                      </Box>
+                    </Grid>
                   </VStack>
                 </Box>
 
@@ -545,6 +602,7 @@ function LeadCard() {
                       size="lg"
                       bgGradient="linear(to-r, brand.teal, brand.blue)"
                       color="white"
+                      onClick={handleSendEmail}
                       _hover={{
                         bgGradient: 'linear(to-r, brand.tealHover, brand.blueHover)',
                         transform: 'translateY(-1px)',
@@ -558,6 +616,7 @@ function LeadCard() {
                       size="lg"
                       bgGradient="linear(to-r, brand.teal, brand.blue)"
                       color="white"
+                      onClick={handleMakeCall}
                       _hover={{
                         bgGradient: 'linear(to-r, brand.tealHover, brand.blueHover)',
                         transform: 'translateY(-1px)',
@@ -571,6 +630,7 @@ function LeadCard() {
                       size="lg"
                       bgGradient="linear(to-r, brand.teal, brand.blue)"
                       color="white"
+                      onClick={handleSendWhatsApp}
                       _hover={{
                         bgGradient: 'linear(to-r, brand.tealHover, brand.blueHover)',
                         transform: 'translateY(-1px)',
