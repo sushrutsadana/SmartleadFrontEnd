@@ -10,7 +10,7 @@ export default function AuthComponent() {
 
   useEffect(() => {
     // Check if already authenticated
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {z
       if (session) {
         navigate('/')
       }
@@ -97,18 +97,18 @@ export default function AuthComponent() {
               },
               style: {
                 button: {
-                  fontSize: '20px',
+                  fontSize: '16px',
                   fontWeight: '500'
                 },
                 input: {
-                  fontSize: '20px'
+                  fontSize: '16px'
                 },
                 label: {
-                  fontSize: '20px',
+                  fontSize: '16px',
                   color: '#4A5568'
                 },
                 anchor: {
-                  fontSize: '14px',
+                  fontSize: '16px',
                   color: '#00838F'
                 }
               }
