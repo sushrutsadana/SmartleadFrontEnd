@@ -10,7 +10,7 @@ export default function AuthComponent() {
 
   useEffect(() => {
     // Check if already authenticated
-    supabase.auth.getSession().then(({ data: { session } }) => {z
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         navigate('/')
       }
