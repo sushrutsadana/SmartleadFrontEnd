@@ -108,7 +108,7 @@ export default function AuthComponent() {
                   color: '#4A5568'
                 },
                 anchor: {
-                  fontSize: '16px',
+                  fontSize: '12px',
                   color: '#00838F'
                 }
               }
