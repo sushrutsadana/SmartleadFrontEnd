@@ -15,6 +15,10 @@
       "dest": "/assets/$1"
     },
     {
+      "src": "^/logo.png",
+      "dest": "/logo.png"
+    },
+    {
       "src": "^/favicon.(.*)",
       "dest": "/favicon.$1"
     },
