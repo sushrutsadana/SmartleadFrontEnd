@@ -84,7 +84,7 @@ function Database() {
   }
 
   const handleViewLead = (leadId) => {
-    navigate(`/leads/${leadId}`)
+    navigate(`/lead/${leadId}`)
   }
 
   return (

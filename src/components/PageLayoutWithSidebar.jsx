@@ -2,9 +2,11 @@ import { Grid, VStack, Text, List, ListItem, HStack, Badge, Box } from '@chakra-
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import Card from './Card'
+import { useNavigate } from 'react-router-dom'
 
 function PageLayoutWithSidebar({ children }) {
   const [recentLeads, setRecentLeads] = useState([])
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetchRecentLeads()
@@ -41,6 +43,7 @@ function PageLayoutWithSidebar({ children }) {
             {recentLeads.map((lead) => (
               <ListItem
                 key={lead.id}
+                onClick={() => navigate(`/lead/${lead.id}`)}
                 p={3}
                 borderRadius="md"
                 border="1px solid"

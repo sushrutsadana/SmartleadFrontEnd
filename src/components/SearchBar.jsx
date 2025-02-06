@@ -106,7 +106,7 @@ function SearchBar() {
   }
 
   const handleResultClick = (lead) => {
-    navigate(`/leads/${lead.id}`)
+    navigate(`/lead/${lead.id}`)
     setSearchQuery('')
     setResults([])
   }

@@ -211,7 +211,7 @@ function SearchWhatsApp() {
                     borderColor="gray.200"
                     borderRadius="md"
                     cursor="pointer"
-                    onClick={() => navigate(`/leads/${lead.id}`)}
+                    onClick={() => navigate(`/lead/${lead.id}`)}
                     _hover={{ borderColor: 'blue.200' }}
                   >
                     <HStack justify="space-between">

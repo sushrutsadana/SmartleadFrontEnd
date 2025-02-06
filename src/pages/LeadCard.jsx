@@ -28,10 +28,11 @@ import {
   Tooltip,
   Grid,
   FormControl,
-  FormLabel
+  FormLabel,
+  Center
 } from '@chakra-ui/react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '../supabaseClient'
 import { 
   FiMail, 
   FiPhone, 
@@ -49,11 +50,7 @@ import axios from 'axios'
 import PageHeader from '../components/PageHeader'
 import PageContainer from '../components/PageContainer'
 import PhoneInput from '../components/PhoneInput'
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_KEY
-)
+import CardComponent from '../components/Card'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -383,7 +380,7 @@ function LeadCard() {
         description="View and manage lead information"
       />
       
-      <Card>
+      <CardComponent>
         <Box 
           maxW="1000px"
           w="full"
@@ -766,7 +763,7 @@ function LeadCard() {
             </AlertDialogOverlay>
           </AlertDialog>
         </Box>
-      </Card>
+      </CardComponent>
     </PageContainer>
   )
 }

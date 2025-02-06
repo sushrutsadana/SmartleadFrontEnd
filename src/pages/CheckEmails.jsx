@@ -14,8 +14,9 @@ import {
   useToast,
   Spinner,
   Center,
+  Box,
 } from '@chakra-ui/react'
-import { FiMail, FiUser, FiArrowRight, FiUsers, FiRefreshCw } from 'react-icons/fi'
+import { FiMail, FiUser, FiArrowRight, FiUsers, FiRefreshCw, FiBriefcase, FiClock } from 'react-icons/fi'
 import { createClient } from '@supabase/supabase-js'
 import { useNavigate } from 'react-router-dom'
 import PageHeader from '../components/PageHeader'
@@ -203,6 +204,10 @@ function CheckEmails() {
     return colors[status] || 'gray'
   }
 
+  const handleLeadClick = (lead) => {
+    navigate(`/lead/${lead.id}`)
+  }
+
   if (isLoading) {
     return (
       <PageContainer>
@@ -295,37 +300,83 @@ function CheckEmails() {
           <VStack align="stretch" spacing={4}>
             <Text fontWeight="bold" fontSize="lg">Generated Leads</Text>
             
-            {leads.length === 0 ? (
-              <Text color="gray.500" textAlign="center" py={4}>No leads found</Text>
+            {isLoading ? (
+              <Box py={8} textAlign="center">
+                <Spinner size="lg" color="blue.500" />
+              </Box>
+            ) : leads.length === 0 ? (
+              <Box 
+                py={8} 
+                textAlign="center" 
+                borderRadius="lg" 
+                bg="gray.50"
+              >
+                <Icon as={FiMail} boxSize={8} color="gray.400" mb={3} />
+                <Text color="gray.600">No email leads to process</Text>
+              </Box>
             ) : (
               <List spacing={3}>
                 {leads.map((lead) => (
-                  <ListItem 
+                  <ListItem
                     key={lead.id}
-                    p={4}
-                    border="1px"
-                    borderColor="gray.200"
-                    borderRadius="md"
+                    onClick={() => handleLeadClick(lead)}
                     cursor="pointer"
-                    onClick={() => navigate(`/leads/${lead.id}`)}
-                    _hover={{ borderColor: 'blue.200' }}
+                    p={4}
+                    borderRadius="md"
+                    border="1px solid"
+                    borderColor="gray.200"
+                    _hover={{ 
+                      bg: 'gray.50',
+                      borderColor: 'blue.200',
+                      transform: 'translateY(-1px)',
+                      boxShadow: 'sm'
+                    }}
+                    transition="all 0.2s"
+                    role="group"
                   >
-                    <HStack justify="space-between">
-                      <HStack spacing={4}>
-                        <Icon as={FiUser} color="blue.500" />
-                        <VStack align="start" spacing={0}>
-                          <Text fontWeight="medium">
+                    <VStack align="stretch" spacing={2}>
+                      <HStack justify="space-between">
+                        <HStack spacing={3}>
+                          <Box
+                            p={2}
+                            borderRadius="full"
+                            bg="blue.50"
+                          >
+                            <FiUser size={14} color="var(--chakra-colors-blue-500)" />
+                          </Box>
+                          <Text 
+                            fontWeight="medium"
+                            _groupHover={{ color: 'blue.500' }}
+                          >
                             {lead.first_name} {lead.last_name}
                           </Text>
-                          <Text fontSize="sm" color="gray.600">
-                            {lead.email}
-                          </Text>
-                        </VStack>
+                        </HStack>
+                        <Badge colorScheme={getStatusColor(lead.status)}>
+                          {lead.status}
+                        </Badge>
                       </HStack>
-                      <Badge colorScheme={getStatusColor(lead.status)}>
-                        {lead.status}
-                      </Badge>
-                    </HStack>
+
+                      {lead.company_name && (
+                        <HStack fontSize="sm" color="gray.600" spacing={2} ml="44px">
+                          <FiBriefcase size={12} />
+                          <Text>{lead.company_name}</Text>
+                        </HStack>
+                      )}
+
+                      <HStack fontSize="xs" color="gray.500" spacing={2} ml="44px">
+                        <FiClock size={12} />
+                        <Text>
+                          Added {new Date(lead.created_at).toLocaleDateString()}
+                        </Text>
+                        {lead.email && (
+                          <>
+                            <Text>•</Text>
+                            <FiMail size={12} />
+                            <Text>{lead.email}</Text>
+                          </>
+                        )}
+                      </HStack>
+                    </VStack>
                   </ListItem>
                 ))}
               </List>
