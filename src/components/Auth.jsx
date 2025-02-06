@@ -31,7 +31,7 @@ export default function AuthComponent() {
       <Container maxW="container.sm" centerContent>
         <VStack spacing={1} mb={8}>
           <Image
-            src="logo.png"
+            src="/logo.png"
             alt="SmartLead Logo"
             boxSize="48px"
             objectFit="contain"

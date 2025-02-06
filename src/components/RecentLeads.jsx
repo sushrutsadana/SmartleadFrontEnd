@@ -1,10 +1,11 @@
-import { VStack, Text, List, ListItem, HStack, Badge, Box, Spinner } from '@chakra-ui/react'
+import { VStack, Text, List, ListItem, HStack, Badge, Box, Spinner, useMediaQuery } from '@chakra-ui/react'
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import Card from './Card'
 
 function RecentLeads() {
+  const [isLargerThan1024] = useMediaQuery('(min-width: 1024px)')
   const navigate = useNavigate()
   const [leads, setLeads] = useState([])
   const [loading, setLoading] = useState(true)
@@ -34,8 +35,17 @@ function RecentLeads() {
     navigate(`/lead/${id}`)
   }
 
+  // Don't render on mobile/tablet
+  if (!isLargerThan1024) {
+    return null
+  }
+
   return (
-    <Box position="fixed" right="24px" top="100px" width="280px">
+    <Box 
+      p={4}
+      position="sticky"
+      top="0"
+    >
       <Card>
         <VStack align="stretch" spacing={3} p={4}>
           <Text fontWeight="semibold" fontSize="lg">

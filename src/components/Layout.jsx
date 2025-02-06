@@ -47,11 +47,8 @@ function Layout() {
       <Box 
         flex="1" 
         ml={{ base: 0, lg: spacing.layout.sidebarWidth }}
-        display="flex"
-        flexDirection="column"
-        h="100vh"
-        overflow="auto"
-        bg="gray.50"
+        maxW={{ base: '100vw', lg: `calc(100vw - ${spacing.layout.sidebarWidth} - 300px)` }}
+        position="relative"
       >
         {/* Top SearchBar */}
         <Box 
@@ -72,7 +69,6 @@ function Layout() {
           py={6}
           maxW="1800px"
           w="100%"
-          alignSelf="flex-start"
         >
           <Outlet />
         </Box>
@@ -93,7 +89,19 @@ function Layout() {
           </Box>
         </Box>
       </Box>
-      <RecentLeads />
+
+      {/* RecentLeads Sidebar */}
+      <Box 
+        display={{ base: 'none', lg: 'block' }}
+        w="300px"
+        borderLeft="1px solid"
+        borderColor="gray.200"
+        bg="white"
+        h="100vh"
+        overflowY="auto"
+      >
+        <RecentLeads />
+      </Box>
     </Flex>
   )
 }
