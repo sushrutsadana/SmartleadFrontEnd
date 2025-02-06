@@ -15,6 +15,7 @@ import Auth from './components/Auth'
 import SearchSocial from './pages/SearchSocial'
 import Admin from './pages/Admin'
 import Meetings from './pages/Meetings'
+import Reports from './pages/Reports'
 
 const ProtectedRoute = ({ children }) => {
   const [session, setSession] = useState(null)
@@ -109,6 +110,10 @@ export const router = createBrowserRouter([
       {
         path: '/meetings',
         element: <Meetings />
+      },
+      {
+        path: '/reports',
+        element: <Reports />
       }
     ]
   }

@@ -23,7 +23,7 @@ import {
   AlertDialogOverlay
 } from '@chakra-ui/react'
 import { createClient } from '@supabase/supabase-js'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { FiEdit2, FiEye, FiTrash2 } from 'react-icons/fi'
 import PageHeader from '../components/PageHeader'
 import PageContainer from '../components/PageContainer'
@@ -43,6 +43,16 @@ function Database() {
   const cancelRef = React.useRef()
   const toast = useToast()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [selectedStatus, setSelectedStatus] = useState('all')
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const statusParam = params.get('status')
+    if (statusParam) {
+      setSelectedStatus(statusParam)
+    }
+  }, [location])
 
   useEffect(() => {
     fetchLeads()
@@ -146,96 +156,106 @@ function Database() {
         description="View and manage all your leads"
       />
       
-      <PageLayoutWithSidebar>
-        <Card>
-          <Box borderWidth="1px" borderRadius="lg" p={6}>
-            <HStack justify="space-between" mb={6}>
-              <Heading size="lg">Database</Heading>
-              <Button 
-                colorScheme="blue" 
-                onClick={fetchLeads} 
-                isLoading={isLoading}
-                leftIcon={<RefreshIcon />}
-              >
-                Refresh
-              </Button>
-            </HStack>
+      <Card mb={6}>
+        <HStack p={4} spacing={4} overflowX="auto">
+          <Text fontWeight="medium">Filter by Status:</Text>
+          {['all', 'new', 'contacted', 'qualified', 'lost', 'won'].map((status) => (
+            <Button
+              key={status}
+              size="sm"
+              variant={selectedStatus === status ? 'solid' : 'outline'}
+              colorScheme={
+                status === 'new' ? 'blue' :
+                status === 'contacted' ? 'yellow' :
+                status === 'qualified' ? 'green' :
+                status === 'lost' ? 'red' :
+                status === 'won' ? 'purple' :
+                'gray'
+              }
+              onClick={() => {
+                setSelectedStatus(status)
+                // Update URL without page reload
+                const newUrl = status === 'all' 
+                  ? '/database'
+                  : `/database?status=${status}`
+                window.history.pushState({}, '', newUrl)
+              }}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </Button>
+          ))}
+        </HStack>
+      </Card>
 
-            {isLoading ? (
-              <Box textAlign="center" py={10}>
-                <Spinner size="xl" />
-                <Text mt={4}>Loading leads...</Text>
-              </Box>
-            ) : leads.length === 0 ? (
-              <Box textAlign="center" py={10}>
-                <Text>No leads found</Text>
-              </Box>
-            ) : (
-              <Table variant="simple">
-                <Thead>
-                  <Tr>
-                    <Th>Name</Th>
-                    <Th>Email</Th>
-                    <Th>Company</Th>
-                    <Th>LinkedIn URL</Th>
-                    <Th>Status</Th>
-                    <Th>Actions</Th>
+      <Card>
+        <Box overflowX="auto">
+          <Table variant="simple">
+            <Thead>
+              <Tr>
+                <Th>Name</Th>
+                <Th>Company</Th>
+                <Th>Email</Th>
+                <Th>Phone</Th>
+                <Th>Status</Th>
+                <Th>Actions</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {leads
+                .filter(lead => selectedStatus === 'all' || lead.status === selectedStatus)
+                .map((lead) => (
+                  <Tr key={lead.id}>
+                    <Td>{lead.first_name} {lead.last_name}</Td>
+                    <Td>{lead.company_name}</Td>
+                    <Td>{lead.email}</Td>
+                    <Td>{lead.phone}</Td>
+                    <Td>
+                      <Badge colorScheme={getStatusColor(lead.status)}>
+                        {lead.status}
+                      </Badge>
+                    </Td>
+                    <Td>
+                      <HStack spacing={2}>
+                        <Button
+                          size="sm"
+                          colorScheme="blue"
+                          leftIcon={<FiEdit2 />}
+                          onClick={() => handleViewLead(lead.id)}
+                        >
+                          View
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          colorScheme="blue"
+                          onClick={() => handleEdit(lead.id)}
+                        >
+                          Edit
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          colorScheme="red"
+                          onClick={() => handleDelete(lead)}
+                        >
+                          Delete
+                        </Button>
+                      </HStack>
+                    </Td>
                   </Tr>
-                </Thead>
-                <Tbody>
-                  {leads.map((lead) => (
-                    <Tr key={lead.id}>
-                      <Td>{lead.first_name} {lead.last_name}</Td>
-                      <Td>{lead.email}</Td>
-                      <Td>{lead.company_name}</Td>
-                      <Td>
-                        {lead.linkedin_url && (
-                          <a href={lead.linkedin_url} target="_blank" rel="noopener noreferrer">
-                            <Button size="sm" variant="link">
-                              View Profile
-                            </Button>
-                          </a>
-                        )}
-                      </Td>
-                      <Td>
-                        <Badge colorScheme={getStatusColor(lead.status)}>
-                          {lead.status}
-                        </Badge>
-                      </Td>
-                      <Td>
-                        <HStack spacing={2}>
-                          <Button
-                            size="sm"
-                            colorScheme="blue"
-                            leftIcon={<FiEdit2 />}
-                            onClick={() => handleViewLead(lead.id)}
-                          >
-                            View
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            colorScheme="blue"
-                            onClick={() => handleEdit(lead.id)}
-                          >
-                            Edit
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            colorScheme="red"
-                            onClick={() => handleDelete(lead)}
-                          >
-                            Delete
-                          </Button>
-                        </HStack>
-                      </Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
-            )}
-          </Box>
-        </Card>
-      </PageLayoutWithSidebar>
+                ))}
+            </Tbody>
+          </Table>
+
+          {leads.length === 0 ? (
+            <Box textAlign="center" py={8}>
+              <Text color="gray.500">No leads found</Text>
+            </Box>
+          ) : leads.filter(lead => selectedStatus === 'all' || lead.status === selectedStatus).length === 0 ? (
+            <Box textAlign="center" py={8}>
+              <Text color="gray.500">No leads found with status: {selectedStatus}</Text>
+            </Box>
+          ) : null}
+        </Box>
+      </Card>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog

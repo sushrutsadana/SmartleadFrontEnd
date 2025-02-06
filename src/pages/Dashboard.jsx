@@ -22,13 +22,15 @@ import {
   HStack,
   VStack,
   Divider,
+  Grid
 } from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
-import { FiMail, FiMessageSquare, FiPhone, FiUser, FiUserCheck, FiUserPlus } from 'react-icons/fi'
+import { FiMail, FiMessageSquare, FiPhone, FiUser, FiUserCheck, FiUserPlus, FiUsers, FiCheckCircle, FiMessageCircle, FiStar } from 'react-icons/fi'
 import PageContainer from '../components/PageContainer'
 import PageHeader from '../components/PageHeader'
 import Card from '../components/Card'
 import { supabase } from '../supabaseClient'
+import { useNavigate } from 'react-router-dom'
 
 // Register ChartJS components
 ChartJS.register(
@@ -54,6 +56,7 @@ function Dashboard() {
     qualificationRate: 0
   })
   const [chartData, setChartData] = useState(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetchDashboardData()
@@ -61,49 +64,52 @@ function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch lead stats
-      const daysAgo = new Date()
-      daysAgo.setDate(daysAgo.getDate() - parseInt(timeRange))
+      // Calculate date range
+      const endDate = new Date()
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - parseInt(timeRange))
 
-      const { data: leads } = await supabase
+      // Fetch leads
+      const { data: leads, error: leadsError } = await supabase
         .from('leads')
-        .select('status, created_at')
-        .gte('created_at', daysAgo.toISOString())
+        .select('*')
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString())
 
-      // Fetch activity stats
-      const { data: activities } = await supabase
+      if (leadsError) throw leadsError
+
+      // Fetch activities for the period
+      const { data: activities, error: activitiesError } = await supabase
         .from('activities')
-        .select('activity_type, activity_datetime')
-        .gte('activity_datetime', daysAgo.toISOString())
+        .select('*')
+        .gte('activity_datetime', startDate.toISOString())
+        .lte('activity_datetime', endDate.toISOString())
+
+      if (activitiesError) throw activitiesError
 
       // Calculate stats
-      const newLeads = leads?.filter(l => l.status === 'new').length || 0
-      const contactedLeads = leads?.filter(l => l.status === 'contacted').length || 0
-      const qualifiedLeads = leads?.filter(l => l.status === 'qualified').length || 0
+      const stats = {
+        newLeads: leads?.filter(l => l.status === 'new').length || 0,
+        contactedLeads: leads?.filter(l => l.status === 'contacted').length || 0,
+        qualifiedLeads: leads?.filter(l => l.status === 'qualified').length || 0,
+        totalEmails: activities?.filter(a => a.activity_type === 'email_sent').length || 0,
+        totalWhatsApp: activities?.filter(a => a.activity_type === 'whatsapp_sent').length || 0,
+        totalCalls: activities?.filter(a => 
+          a.activity_type === 'call_made' || a.activity_type === 'call_scheduled'
+        ).length || 0,
+        contactRate: 0,
+        qualificationRate: 0
+      }
 
-      const totalEmails = activities?.filter(a => a.activity_type === 'email_sent').length || 0
-      const totalWhatsApp = activities?.filter(a => a.activity_type === 'whatsapp_sent').length || 0
-      const totalCalls = activities?.filter(a => a.activity_type === 'call_initiated').length || 0
+      // Calculate rates
+      if (stats.newLeads > 0) {
+        stats.contactRate = Math.round((stats.contactedLeads / stats.newLeads) * 100)
+      }
+      if (stats.contactedLeads > 0) {
+        stats.qualificationRate = Math.round((stats.qualifiedLeads / stats.contactedLeads) * 100)
+      }
 
-      // Calculate conversion rates
-      const contactRate = newLeads > 0 
-        ? ((contactedLeads / newLeads) * 100).toFixed(1) 
-        : 0
-      
-      const qualificationRate = contactedLeads > 0 
-        ? ((qualifiedLeads / contactedLeads) * 100).toFixed(1)
-        : 0
-
-      setStats({
-        newLeads,
-        contactedLeads,
-        qualifiedLeads,
-        totalEmails,
-        totalWhatsApp,
-        totalCalls,
-        contactRate,
-        qualificationRate
-      })
+      setStats(stats)
 
       // Prepare chart data
       const dates = [...Array(parseInt(timeRange))].map((_, i) => {
@@ -149,20 +155,52 @@ function Dashboard() {
     }
   }
 
-  const StatCard = ({ title, value, icon, helpText }) => (
-    <Card p={6}>
+  const handleMetricClick = (type) => {
+    switch(type) {
+      case 'new':
+        navigate('/database?status=new')
+        break
+      case 'contacted':
+        navigate('/database?status=contacted')
+        break
+      case 'qualified':
+        navigate('/database?status=qualified')
+        break
+      case 'emails':
+        navigate('/reports?type=email_sent')
+        break
+      case 'whatsapp':
+        navigate('/reports?type=whatsapp_sent')
+        break
+      case 'calls':
+        navigate('/reports?type=call_scheduled')
+        break
+      default:
+        navigate('/database')
+    }
+  }
+
+  const StatCard = ({ title, value, icon, helpText, onClick, isDisabled }) => (
+    <Card 
+      p={6}
+      cursor={isDisabled ? 'default' : 'pointer'}
+      transition="all 0.2s"
+      _hover={!isDisabled && { transform: 'translateY(-2px)', shadow: 'md' }}
+      onClick={!isDisabled ? onClick : undefined}
+      opacity={isDisabled ? 0.7 : 1}
+    >
       <VStack align="start" spacing={2}>
         <HStack spacing={3}>
-          <Icon as={icon} boxSize={5} color="blue.500" />
-          <Text color="gray.500" fontSize="sm">
+          <Icon as={icon} boxSize={5} color={isDisabled ? 'gray.400' : 'blue.500'} />
+          <Text color={isDisabled ? 'gray.400' : 'gray.500'} fontSize="sm">
             {title}
           </Text>
         </HStack>
-        <Text fontSize="3xl" fontWeight="bold">
+        <Text fontSize="3xl" fontWeight="bold" color={isDisabled ? 'gray.400' : 'inherit'}>
           {value}
         </Text>
         {helpText && (
-          <Text fontSize="sm" color="gray.500">
+          <Text fontSize="sm" color={isDisabled ? 'gray.400' : 'gray.500'}>
             {helpText}
           </Text>
         )}
@@ -207,70 +245,44 @@ function Dashboard() {
         <VStack spacing={6} align="stretch">
           {/* Conversion Stats */}
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-            <Card p={6} bg="blue.50">
-              <VStack align="start" spacing={2}>
-                <HStack spacing={3}>
-                  <Icon as={FiUserPlus} boxSize={5} color="blue.500" />
-                  <Text color="blue.800" fontSize="sm" fontWeight="medium">
-                    Contact Rate
-                  </Text>
-                </HStack>
-                <HStack align="baseline" spacing={2}>
-                  <Text fontSize="3xl" fontWeight="bold" color="blue.800">
-                    {stats.contactRate}%
-                  </Text>
-                  <Text fontSize="sm" color="blue.600">
-                    of new leads contacted
-                  </Text>
-                </HStack>
-                <Text fontSize="sm" color="blue.600">
-                  {stats.contactedLeads} out of {stats.newLeads} new leads
-                </Text>
-              </VStack>
-            </Card>
-
-            <Card p={6} bg="green.50">
-              <VStack align="start" spacing={2}>
-                <HStack spacing={3}>
-                  <Icon as={FiUserCheck} boxSize={5} color="green.500" />
-                  <Text color="green.800" fontSize="sm" fontWeight="medium">
-                    Qualification Rate
-                  </Text>
-                </HStack>
-                <HStack align="baseline" spacing={2}>
-                  <Text fontSize="3xl" fontWeight="bold" color="green.800">
-                    {stats.qualificationRate}%
-                  </Text>
-                  <Text fontSize="sm" color="green.600">
-                    of contacted leads qualified
-                  </Text>
-                </HStack>
-                <Text fontSize="sm" color="green.600">
-                  {stats.qualifiedLeads} out of {stats.contactedLeads} contacted leads
-                </Text>
-              </VStack>
-            </Card>
+            <StatCard
+              title="Contact Rate"
+              value={`${stats.contactRate}%`}
+              icon={FiUsers}
+              helpText={`${stats.contactedLeads} out of ${stats.newLeads} new leads`}
+              onClick={() => handleMetricClick('contacted')}
+            />
+            <StatCard
+              title="Qualification Rate"
+              value={`${stats.qualificationRate}%`}
+              icon={FiCheckCircle}
+              helpText={`${stats.qualifiedLeads} out of ${stats.contactedLeads} contacted leads`}
+              onClick={() => handleMetricClick('qualified')}
+            />
           </SimpleGrid>
 
-          {/* Existing Lead Stats */}
+          {/* Lead Stats */}
           <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
             <StatCard
               title="New Leads"
               value={stats.newLeads}
               icon={FiUserPlus}
               helpText="Total new leads acquired"
+              onClick={() => handleMetricClick('new')}
             />
             <StatCard
               title="Contacted Leads"
               value={stats.contactedLeads}
-              icon={FiUser}
+              icon={FiMessageCircle}
               helpText="Leads that have been contacted"
+              onClick={() => handleMetricClick('contacted')}
             />
             <StatCard
               title="Qualified Leads"
               value={stats.qualifiedLeads}
-              icon={FiUserCheck}
+              icon={FiStar}
               helpText="Leads qualified for conversion"
+              onClick={() => handleMetricClick('qualified')}
             />
           </SimpleGrid>
 
@@ -281,18 +293,21 @@ function Dashboard() {
               value={stats.totalEmails}
               icon={FiMail}
               helpText="Total emails sent to leads"
+              onClick={() => handleMetricClick('emails')}
             />
             <StatCard
               title="WhatsApp Messages"
               value={stats.totalWhatsApp}
               icon={FiMessageSquare}
               helpText="Total WhatsApp messages sent"
+              onClick={() => handleMetricClick('whatsapp')}
             />
             <StatCard
               title="Calls Made"
               value={stats.totalCalls}
               icon={FiPhone}
               helpText="Total calls initiated"
+              onClick={() => handleMetricClick('calls')}
             />
           </SimpleGrid>
 
