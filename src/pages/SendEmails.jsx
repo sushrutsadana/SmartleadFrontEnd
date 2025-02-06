@@ -131,12 +131,16 @@ function SendEmails() {
               Lead Activity History:
               ${formattedActivities.map(a => `- ${a.date}: ${a.type} - ${a.details}`).join('\n')}
               
-              Your goal is to craft a personalized follow-up email that:
-              1. References their past interactions and activity history
-              2. Highlights how SmartLead CRM's AI-driven capabilities can solve their specific needs
-              3. Maintains a professional yet friendly tone
-              4. Always includes this exact meeting scheduling text: "I'd love to schedule a quick call to discuss how we can tailor SmartLead CRM to your specific needs. Would you be available for a 30-minute meeting? You can schedule directly here: https://calendly.com/smartleadplatform"
-              5. Demonstrates understanding of their business context
+              Your goal is to craft a concise, high-impact email that:
+              1. Gets straight to the point - no fluff or unnecessary pleasantries
+              2. References their past interactions in 1-2 sentences maximum
+              3. Highlights ONE key benefit of SmartLead CRM relevant to their context
+              4. Maintains a professional yet direct tone
+              5. Always includes this exact meeting scheduling text: "I'd love to schedule a quick call to discuss how we can tailor SmartLead CRM to your specific needs. Would you be available for a 30-minute meeting? You can schedule directly here: https://calendly.com/smartleadplatform"
+
+              Keep the entire email body under 150 words, excluding signature.
+              Use short paragraphs (2-3 sentences maximum).
+              Focus on driving action rather than explaining features.
 
               CRITICAL: Respond with ONLY a JSON object in this exact format:
               {
