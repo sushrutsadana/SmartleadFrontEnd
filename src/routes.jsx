@@ -14,6 +14,7 @@ import SearchWhatsApp from './pages/SearchWhatsApp'
 import Auth from './components/Auth'
 import SearchSocial from './pages/SearchSocial'
 import Admin from './pages/Admin'
+import Meetings from './pages/Meetings'
 
 const ProtectedRoute = ({ children }) => {
   const [session, setSession] = useState(null)
@@ -104,6 +105,10 @@ export const router = createBrowserRouter([
       {
         path: '/admin',
         element: <Admin />
+      },
+      {
+        path: '/meetings',
+        element: <Meetings />
       }
     ]
   }

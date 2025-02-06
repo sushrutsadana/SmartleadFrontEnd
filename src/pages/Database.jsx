@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Box,
   Container,
@@ -14,11 +14,17 @@ import {
   useToast,
   Spinner,
   Text,
-  Badge
+  Badge,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay
 } from '@chakra-ui/react'
 import { createClient } from '@supabase/supabase-js'
 import { useNavigate } from 'react-router-dom'
-import { FiEdit2 } from 'react-icons/fi'
+import { FiEdit2, FiEye, FiTrash2 } from 'react-icons/fi'
 import PageHeader from '../components/PageHeader'
 import PageContainer from '../components/PageContainer'
 import Card from '../components/Card'
@@ -32,6 +38,9 @@ const supabase = createClient(
 function Database() {
   const [leads, setLeads] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [leadToDelete, setLeadToDelete] = useState(null)
+  const cancelRef = React.useRef()
   const toast = useToast()
   const navigate = useNavigate()
 
@@ -78,9 +87,52 @@ function Database() {
     // Implement edit functionality
   }
 
-  const handleDelete = (leadId) => {
-    console.log('Delete lead:', leadId)
-    // Implement delete functionality
+  const handleDelete = async (lead) => {
+    setLeadToDelete(lead)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    try {
+      // First delete all activities associated with this lead
+      const { error: activitiesError } = await supabase
+        .from('activities')
+        .delete()
+        .eq('lead_id', leadToDelete.id)
+
+      if (activitiesError) throw activitiesError
+
+      // Then delete the lead
+      const { error: leadError } = await supabase
+        .from('leads')
+        .delete()
+        .eq('id', leadToDelete.id)
+
+      if (leadError) throw leadError
+
+      toast({
+        title: 'Lead deleted',
+        description: 'The lead and all associated activities have been deleted',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      })
+
+      // Refresh leads list
+      fetchLeads()
+    } catch (error) {
+      console.error('Error deleting lead:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to delete lead',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    } finally {
+      setIsDeleteDialogOpen(false)
+      setLeadToDelete(null)
+    }
   }
 
   const handleViewLead = (leadId) => {
@@ -170,7 +222,7 @@ function Database() {
                           <Button 
                             size="sm" 
                             colorScheme="red"
-                            onClick={() => handleDelete(lead.id)}
+                            onClick={() => handleDelete(lead)}
                           >
                             Delete
                           </Button>
@@ -184,6 +236,35 @@ function Database() {
           </Box>
         </Card>
       </PageLayoutWithSidebar>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isDeleteDialogOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={() => setIsDeleteDialogOpen(false)}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Delete Lead
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Are you sure you want to delete {leadToDelete?.first_name} {leadToDelete?.last_name}? 
+              This will also delete all associated activities and cannot be undone.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={() => setIsDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={confirmDelete} ml={3}>
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </PageContainer>
   )
 }

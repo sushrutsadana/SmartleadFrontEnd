@@ -47,6 +47,7 @@ function Layout() {
       <Box 
         flex="1" 
         ml={{ base: 0, lg: spacing.layout.sidebarWidth }}
+        mr={{ base: 0, lg: "300px" }}
         maxW={{ base: '100vw', lg: `calc(100vw - ${spacing.layout.sidebarWidth} - 300px)` }}
         position="relative"
       >
@@ -90,18 +91,8 @@ function Layout() {
         </Box>
       </Box>
 
-      {/* RecentLeads Sidebar */}
-      <Box 
-        display={{ base: 'none', lg: 'block' }}
-        w="300px"
-        borderLeft="1px solid"
-        borderColor="gray.200"
-        bg="white"
-        h="100vh"
-        overflowY="auto"
-      >
-        <RecentLeads />
-      </Box>
+      {/* RecentLeads will position itself */}
+      <RecentLeads />
     </Flex>
   )
 }

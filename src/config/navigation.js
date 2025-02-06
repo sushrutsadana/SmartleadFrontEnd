@@ -6,7 +6,8 @@ import {
   FiPhone, 
   FiSend, 
   FiDatabase,
-  FiSettings
+  FiSettings,
+  FiCalendar
 } from 'react-icons/fi'
 
 export const navigationItems = {
@@ -52,6 +53,11 @@ export const navigationItems = {
     }
   ],
   other: [
+    {
+      path: '/meetings',
+      icon: FiCalendar,
+      label: 'Meetings'
+    },
     {
       path: '/database',
       icon: FiDatabase,

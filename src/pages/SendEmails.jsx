@@ -32,6 +32,7 @@ import Card from '../components/Card'
 import { brandColors, spacing, typography } from '../theme/constants'
 import PageContainer from '../components/PageContainer'
 import { useLocation } from 'react-router-dom'
+import { CALENDLY_LINK, CTA_MESSAGES } from '../config/constants'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -134,13 +135,13 @@ function SendEmails() {
               1. References their past interactions and activity history
               2. Highlights how SmartLead CRM's AI-driven capabilities can solve their specific needs
               3. Maintains a professional yet friendly tone
-              4. Includes a clear call to action for a meeting
+              4. Always includes this exact meeting scheduling text: "I'd love to schedule a quick call to discuss how we can tailor SmartLead CRM to your specific needs. Would you be available for a 30-minute meeting? You can schedule directly here: https://calendly.com/smartleadplatform"
               5. Demonstrates understanding of their business context
 
               CRITICAL: Respond with ONLY a JSON object in this exact format:
               {
                 "subject": "Your subject line here",
-                "body": "Your email body here\\n\\nSecond paragraph here",
+                "body": "Your email body here\\n\\nSecond paragraph here\\n\\nI'd love to schedule...",
                 "signature": "Best regards,\\nChris Evans\\nSales Development Representative\\nSmartLead CRM\\nsmartleadplatform@gmail.com"
               }
 
@@ -325,6 +326,11 @@ function SendEmails() {
       won: 'purple'
     }
     return colors[status] || 'gray'
+  }
+
+  const composeEmail = (template, lead) => {
+    const emailBody = template.replace(/{{name}}/g, lead.first_name)
+    return `${emailBody}${CTA_MESSAGES.email}`
   }
 
   return (

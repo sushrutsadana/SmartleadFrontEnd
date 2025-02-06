@@ -35,6 +35,7 @@ import { typography } from '../theme/constants'
 import DatePicker from 'react-datepicker'
 import "react-datepicker/dist/react-datepicker.css"
 import { useLocation } from 'react-router-dom'
+import { CALENDLY_LINK } from '../config/constants'
 
 const API_URL = import.meta.env.VITE_API_URL
 const supabase = createClient(
@@ -136,11 +137,12 @@ Recent Activities:
 ${recentActivities}
 
 Keep the message friendly but professional, and reference their recent activity if relevant.
-Keep the message under 200 characters.
+Always end with this exact text: "Book a time to discuss: https://calendly.com/smartleadplatform"
+Keep the total message under 200 characters (excluding the Calendly link).
 Do not include emojis.
 
 IMPORTANT: Respond with ONLY a JSON object in this EXACT format:
-{"message": "Hi [name], this is Chris from SmartLead CRM..."}
+{"message": "Hi [name], this is Chris from SmartLead CRM... Book a time to discuss: https://calendly.com/smartleadplatform"}
 
 Do not include any other text, markdown, or formatting - ONLY the JSON object.`
           }
@@ -164,7 +166,7 @@ Do not include any other text, markdown, or formatting - ONLY the JSON object.`
         .trim()
 
       const messageData = JSON.parse(responseText)
-      setMessage(messageData.message)
+      setMessage(composeMessage(messageData.message, lead))
 
     } catch (error) {
       console.error('Message generation error:', error)
@@ -268,6 +270,10 @@ Do not include any other text, markdown, or formatting - ONLY the JSON object.`
       won: 'purple'
     }
     return colors[status] || 'gray'
+  }
+
+  const composeMessage = (template, lead) => {
+    return template.replace(/{{name}}/g, lead.first_name)
   }
 
   if (isLoading) {
