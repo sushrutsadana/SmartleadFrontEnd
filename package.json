@@ -10,6 +10,7 @@
     "vercel-build": "vite build"
   },
   "dependencies": {
+    "@babel/code-frame": "^7.26.2",
     "@chakra-ui/icons": "^2.2.4",
     "@chakra-ui/react": "^2.8.0",
     "@emotion/react": "^11.11.1",
@@ -21,6 +22,7 @@
     "chart.js": "^4.4.7",
     "framer-motion": "^10.16.0",
     "groq-sdk": "^0.13.0",
+    "picocolors": "^1.1.1",
     "react": "^18.2.0",
     "react-chartjs-2": "^5.3.0",
     "react-datepicker": "^8.0.0",

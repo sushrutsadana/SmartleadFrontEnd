@@ -6,9 +6,10 @@ import {
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  ArcElement
 } from 'chart.js'
-import { Line } from 'react-chartjs-2'
+import { Line, Pie } from 'react-chartjs-2'
 import {
   Box,
   SimpleGrid,
@@ -22,7 +23,9 @@ import {
   HStack,
   VStack,
   Divider,
-  Grid
+  Grid,
+  Spinner,
+  Center
 } from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
 import { FiMail, FiMessageSquare, FiPhone, FiUser, FiUserCheck, FiUserPlus, FiUsers, FiCheckCircle, FiMessageCircle, FiStar } from 'react-icons/fi'
@@ -40,8 +43,28 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  ArcElement
 )
+
+// Add chartOptions constant before the Dashboard function
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  scales: {
+    y: {
+      beginAtZero: true,
+      ticks: {
+        stepSize: 1
+      }
+    }
+  },
+  plugins: {
+    legend: {
+      position: 'bottom'
+    }
+  }
+}
 
 function Dashboard() {
   const [timeRange, setTimeRange] = useState('7')
@@ -56,6 +79,7 @@ function Dashboard() {
     qualificationRate: 0
   })
   const [chartData, setChartData] = useState(null)
+  const [leadSourceData, setLeadSourceData] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -150,8 +174,55 @@ function Dashboard() {
 
       setChartData(chartData)
 
+      // Fetch lead source data
+      const sourceData = await fetchLeadSourceData()
+      setLeadSourceData(sourceData)
+
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
+    }
+  }
+
+  const fetchLeadSourceData = async () => {
+    try {
+      // Calculate date range
+      const endDate = new Date()
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - parseInt(timeRange))
+
+      const { data, error } = await supabase
+        .from('leads')
+        .select('lead_source')
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString())
+      
+      if (error) throw error
+
+      const sourceCounts = data.reduce((acc, lead) => {
+        const source = lead.lead_source || 'Direct'
+        acc[source] = (acc[source] || 0) + 1
+        return acc
+      }, {})
+
+      return {
+        labels: Object.keys(sourceCounts),
+        datasets: [{
+          data: Object.values(sourceCounts),
+          backgroundColor: [
+            '#00838F',  // teal
+            '#2B3990',  // blue
+            '#4CAF50',  // green
+            '#FFC107',  // yellow
+            '#FF5722',  // orange
+            '#9C27B0',  // purple
+          ],
+          borderWidth: 1,
+          label: 'Lead Sources'
+        }]
+      }
+    } catch (error) {
+      console.error('Error fetching lead source data:', error)
+      return null
     }
   }
 
@@ -311,38 +382,64 @@ function Dashboard() {
             />
           </SimpleGrid>
 
-          {/* Chart */}
-          <Card p={6}>
-            <VStack align="stretch" spacing={4}>
-              <Text fontSize="lg" fontWeight="medium">
-                Lead Status Trends
-              </Text>
-              {chartData && (
-                <Box h="300px">
-                  <Line
-                    data={chartData}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      scales: {
-                        y: {
-                          beginAtZero: true,
-                          ticks: {
-                            stepSize: 1
+          {/* Charts */}
+          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} mb={6}>
+            {/* Lead Status Trends chart */}
+            <Card>
+              <VStack align="start" spacing={2} p={6}>
+                <Text fontSize="lg" fontWeight="semibold">
+                  Lead Status Trends
+                </Text>
+                <Box w="full" h="300px">
+                  {chartData && <Line data={chartData} options={chartOptions} />}
+                </Box>
+              </VStack>
+            </Card>
+
+            {/* Lead Sources chart */}
+            <Card>
+              <VStack align="start" spacing={2} p={6}>
+                <Text fontSize="lg" fontWeight="semibold">
+                  Lead Sources
+                </Text>
+                <Box w="full" h="300px" position="relative">
+                  {leadSourceData ? (
+                    <Pie
+                      data={leadSourceData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: {
+                            position: 'bottom',
+                            labels: {
+                              usePointStyle: true,
+                              padding: 20
+                            }
+                          },
+                          tooltip: {
+                            callbacks: {
+                              label: (context) => {
+                                const label = context.label || ''
+                                const value = context.raw || 0
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0)
+                                const percentage = Math.round((value / total) * 100)
+                                return `${label}: ${value} (${percentage}%)`
+                              }
+                            }
                           }
                         }
-                      },
-                      plugins: {
-                        legend: {
-                          position: 'bottom'
-                        }
-                      }
-                    }}
-                  />
+                      }}
+                    />
+                  ) : (
+                    <Center h="full">
+                      <Spinner />
+                    </Center>
+                  )}
                 </Box>
-              )}
-            </VStack>
-          </Card>
+              </VStack>
+            </Card>
+          </SimpleGrid>
         </VStack>
       </Box>
     </PageContainer>
