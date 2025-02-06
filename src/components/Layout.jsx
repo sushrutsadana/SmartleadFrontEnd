@@ -4,6 +4,7 @@ import Sidebar from './Sidebar'
 import SearchBar from './SearchBar'
 import { FiMenu } from 'react-icons/fi'
 import { brandColors, spacing } from '../theme/constants'
+import RecentLeads from './RecentLeads'
 
 function Layout() {
   const { isOpen, onOpen, onClose } = useDisclosure()
@@ -92,6 +93,7 @@ function Layout() {
           </Box>
         </Box>
       </Box>
+      <RecentLeads />
     </Flex>
   )
 }

@@ -22,6 +22,7 @@ import { FiEdit2 } from 'react-icons/fi'
 import PageHeader from '../components/PageHeader'
 import PageContainer from '../components/PageContainer'
 import Card from '../components/Card'
+import PageLayoutWithSidebar from '../components/PageLayoutWithSidebar'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -88,99 +89,101 @@ function Database() {
 
   return (
     <PageContainer>
-      <PageHeader 
-        title="Database"
-        description="Manage your leads database"
+      <PageHeader
+        title="Lead Database"
+        description="View and manage all your leads"
       />
       
-      <Card>
-        <Box borderWidth="1px" borderRadius="lg" p={6}>
-          <HStack justify="space-between" mb={6}>
-            <Heading size="lg">Database</Heading>
-            <Button 
-              colorScheme="blue" 
-              onClick={fetchLeads} 
-              isLoading={isLoading}
-              leftIcon={<RefreshIcon />}
-            >
-              Refresh
-            </Button>
-          </HStack>
+      <PageLayoutWithSidebar>
+        <Card>
+          <Box borderWidth="1px" borderRadius="lg" p={6}>
+            <HStack justify="space-between" mb={6}>
+              <Heading size="lg">Database</Heading>
+              <Button 
+                colorScheme="blue" 
+                onClick={fetchLeads} 
+                isLoading={isLoading}
+                leftIcon={<RefreshIcon />}
+              >
+                Refresh
+              </Button>
+            </HStack>
 
-          {isLoading ? (
-            <Box textAlign="center" py={10}>
-              <Spinner size="xl" />
-              <Text mt={4}>Loading leads...</Text>
-            </Box>
-          ) : leads.length === 0 ? (
-            <Box textAlign="center" py={10}>
-              <Text>No leads found</Text>
-            </Box>
-          ) : (
-            <Table variant="simple">
-              <Thead>
-                <Tr>
-                  <Th>Name</Th>
-                  <Th>Email</Th>
-                  <Th>Company</Th>
-                  <Th>LinkedIn URL</Th>
-                  <Th>Status</Th>
-                  <Th>Actions</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {leads.map((lead) => (
-                  <Tr key={lead.id}>
-                    <Td>{lead.first_name} {lead.last_name}</Td>
-                    <Td>{lead.email}</Td>
-                    <Td>{lead.company_name}</Td>
-                    <Td>
-                      {lead.linkedin_url && (
-                        <a href={lead.linkedin_url} target="_blank" rel="noopener noreferrer">
-                          <Button size="sm" variant="link">
-                            View Profile
-                          </Button>
-                        </a>
-                      )}
-                    </Td>
-                    <Td>
-                      <Badge colorScheme={getStatusColor(lead.status)}>
-                        {lead.status}
-                      </Badge>
-                    </Td>
-                    <Td>
-                      <HStack spacing={2}>
-                        <Button
-                          size="sm"
-                          colorScheme="blue"
-                          leftIcon={<FiEdit2 />}
-                          onClick={() => handleViewLead(lead.id)}
-                        >
-                          View
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          colorScheme="blue"
-                          onClick={() => handleEdit(lead.id)}
-                        >
-                          Edit
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          colorScheme="red"
-                          onClick={() => handleDelete(lead.id)}
-                        >
-                          Delete
-                        </Button>
-                      </HStack>
-                    </Td>
+            {isLoading ? (
+              <Box textAlign="center" py={10}>
+                <Spinner size="xl" />
+                <Text mt={4}>Loading leads...</Text>
+              </Box>
+            ) : leads.length === 0 ? (
+              <Box textAlign="center" py={10}>
+                <Text>No leads found</Text>
+              </Box>
+            ) : (
+              <Table variant="simple">
+                <Thead>
+                  <Tr>
+                    <Th>Name</Th>
+                    <Th>Email</Th>
+                    <Th>Company</Th>
+                    <Th>LinkedIn URL</Th>
+                    <Th>Status</Th>
+                    <Th>Actions</Th>
                   </Tr>
-                ))}
-              </Tbody>
-            </Table>
-          )}
-        </Box>
-      </Card>
+                </Thead>
+                <Tbody>
+                  {leads.map((lead) => (
+                    <Tr key={lead.id}>
+                      <Td>{lead.first_name} {lead.last_name}</Td>
+                      <Td>{lead.email}</Td>
+                      <Td>{lead.company_name}</Td>
+                      <Td>
+                        {lead.linkedin_url && (
+                          <a href={lead.linkedin_url} target="_blank" rel="noopener noreferrer">
+                            <Button size="sm" variant="link">
+                              View Profile
+                            </Button>
+                          </a>
+                        )}
+                      </Td>
+                      <Td>
+                        <Badge colorScheme={getStatusColor(lead.status)}>
+                          {lead.status}
+                        </Badge>
+                      </Td>
+                      <Td>
+                        <HStack spacing={2}>
+                          <Button
+                            size="sm"
+                            colorScheme="blue"
+                            leftIcon={<FiEdit2 />}
+                            onClick={() => handleViewLead(lead.id)}
+                          >
+                            View
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            colorScheme="blue"
+                            onClick={() => handleEdit(lead.id)}
+                          >
+                            Edit
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            colorScheme="red"
+                            onClick={() => handleDelete(lead.id)}
+                          >
+                            Delete
+                          </Button>
+                        </HStack>
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            )}
+          </Box>
+        </Card>
+      </PageLayoutWithSidebar>
     </PageContainer>
   )
 }

@@ -19,8 +19,13 @@ import {
   PopoverContent,
   PopoverBody,
   Input,
+  Grid,
+  Icon,
+  OrderedList,
+  ListItem as LI,
+  useClipboard,
 } from '@chakra-ui/react'
-import { FiEdit2, FiSend, FiCalendar } from 'react-icons/fi'
+import { FiEdit2, FiSend, FiCalendar, FiMessageSquare, FiCheckCircle, FiCopy } from 'react-icons/fi'
 import axios from 'axios'
 import { createClient } from '@supabase/supabase-js'
 import PageHeader from '../components/PageHeader'
@@ -48,6 +53,8 @@ function SendWhatsApp() {
   const [scheduleDate, setScheduleDate] = useState(null)
   const toast = useToast()
   const location = useLocation()
+  const { hasCopied: hasPhoneCopied, onCopy: onPhoneCopy } = useClipboard('+1 415 523 8886')
+  const { hasCopied: hasCodeCopied, onCopy: onCodeCopy } = useClipboard('join balloon-differ')
 
   useEffect(() => {
     fetchInitialData()
@@ -92,6 +99,9 @@ function SendWhatsApp() {
   const generateMessageDraft = async (lead) => {
     setIsGenerating(true)
     try {
+      // Add this loading text
+      setMessage('Generating personalized message...\n\n✨ AI is crafting your WhatsApp message')
+
       // First fetch recent activities
       const { data: activities, error: activitiesError } = await supabase
         .from('activities')
@@ -280,140 +290,191 @@ Do not include any other text, markdown, or formatting - ONLY the JSON object.`
         description="Select a lead and compose personalized WhatsApp messages"
       />
 
-      <Box p={6}>
-        <HStack align="start" spacing={8}>
-          {/* Left Panel */}
-          <Box w="350px">
-            <VStack spacing={4} align="stretch">
-              <Card p={4}>
-                <Text fontWeight="semibold" mb={3}>Filter Leads</Text>
-                <HStack spacing={2} wrap="wrap">
-                  {['all', 'new', 'contacted', 'qualified', 'lost', 'won'].map((status) => (
-                    <Button
-                      key={status}
-                      size="sm"
-                      variant={selectedStatus === status ? 'solid' : 'outline'}
-                      onClick={() => setSelectedStatus(status)}
-                    >
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
-                    </Button>
-                  ))}
-                </HStack>
-              </Card>
-
-              <Card p={4}>
-                <Text fontWeight="semibold" mb={3}>Select Lead</Text>
-                {isLoading ? (
-                  <Spinner />
-                ) : (
-                  <List spacing={2}>
-                    {leads
-                      .filter(lead => selectedStatus === 'all' || lead.status === selectedStatus)
-                      .map((lead) => (
-                        <ListItem
-                          key={lead.id}
-                          onClick={() => handleLeadSelect(lead)}
-                          cursor="pointer"
-                          p={3}
-                          borderRadius="md"
-                          bg={selectedLead?.id === lead.id ? 'blue.50' : 'transparent'}
-                          _hover={{ bg: 'gray.50' }}
-                        >
-                          <Text fontWeight="medium">
-                            {lead.first_name} {lead.last_name}
-                          </Text>
-                          <Text fontSize="sm" color="gray.600">
-                            {lead.phone_number}
-                          </Text>
-                        </ListItem>
-                      ))}
-                  </List>
-                )}
-              </Card>
+      <Box px={6} mb={6}>
+        <Card bg="blue.50" p={4}>
+          <HStack spacing={4} align="start">
+            <Icon as={FiMessageSquare} boxSize={6} color="blue.500" mt={1} />
+            <VStack align="start" spacing={3}>
+              <Text fontWeight="bold" color="blue.800">
+                WhatsApp Sandbox Mode
+              </Text>
+              <Text color="blue.600">
+                To receive WhatsApp messages, leads must first join our sandbox by:
+              </Text>
+              <OrderedList color="blue.700" spacing={2} pl={4}>
+                <LI>
+                  Sending "join balloon-differ" to{' '}
+                  <Button
+                    variant="link"
+                    color="blue.600"
+                    fontSize="inherit"
+                    onClick={onPhoneCopy}
+                    rightIcon={hasPhoneCopied ? <FiCheckCircle /> : <FiCopy />}
+                  >
+                    +1 415 523 8886
+                  </Button>
+                </LI>
+                <LI>
+                  Or clicking{' '}
+                  <Button
+                    as="a"
+                    href="https://wa.me/14155238886?text=join%20balloon-differ"
+                    target="_blank"
+                    variant="link"
+                    color="blue.600"
+                    fontSize="inherit"
+                  >
+                    this link
+                  </Button>
+                  {' '}to open WhatsApp directly
+                </LI>
+              </OrderedList>
+              <HStack spacing={4} mt={2}>
+                <Button
+                  size="sm"
+                  leftIcon={hasCodeCopied ? <FiCheckCircle /> : <FiCopy />}
+                  onClick={onCodeCopy}
+                >
+                  {hasCodeCopied ? 'Copied!' : 'Copy Join Code'}
+                </Button>
+                <Button
+                  size="sm"
+                  colorScheme="blue"
+                  as="a"
+                  href="https://wa.me/14155238886?text=join%20balloon-differ"
+                  target="_blank"
+                  leftIcon={<FiMessageSquare />}
+                >
+                  Open WhatsApp
+                </Button>
+              </HStack>
             </VStack>
-          </Box>
-
-          {/* Right Panel */}
-          <Box flex={1}>
-            <Card p={6}>
-              {selectedLead ? (
-                <VStack align="stretch" spacing={4}>
-                  <Text fontWeight="semibold">
-                    Compose Message for {selectedLead.first_name}
-                  </Text>
-                  <FormControl>
-                    <FormLabel>Message</FormLabel>
-                    <Textarea
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      placeholder="Enter your message..."
-                      rows={6}
-                      isDisabled={isGenerating}
-                    />
-                  </FormControl>
-
-                  <HStack spacing={4}>
-                    <Button
-                      leftIcon={<FiSend />}
-                      colorScheme="blue"
-                      onClick={() => sendWhatsApp()}
-                      isLoading={isSending}
-                    >
-                      Send Now
-                    </Button>
-
-                    <Popover>
-                      <PopoverTrigger>
-                        <Button leftIcon={<FiCalendar />}>
-                          Schedule
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent p={4}>
-                        <PopoverBody>
-                          <VStack spacing={4}>
-                            <FormControl>
-                              <FormLabel>Select Date and Time</FormLabel>
-                              <DatePicker
-                                selected={scheduleDate}
-                                onChange={setScheduleDate}
-                                showTimeSelect
-                                dateFormat="MMMM d, yyyy h:mm aa"
-                                minDate={new Date()}
-                                customInput={
-                                  <Input />
-                                }
-                              />
-                            </FormControl>
-                            <Button
-                              colorScheme="blue"
-                              w="full"
-                              onClick={() => sendWhatsApp(scheduleDate.toISOString())}
-                              isDisabled={!scheduleDate}
-                            >
-                              Schedule Message
-                            </Button>
-                          </VStack>
-                        </PopoverBody>
-                      </PopoverContent>
-                    </Popover>
-
-                    <Button
-                      leftIcon={<FiEdit2 />}
-                      variant="ghost"
-                      onClick={() => generateMessageDraft(selectedLead)}
-                      isLoading={isGenerating}
-                    >
-                      Regenerate
-                    </Button>
-                  </HStack>
-                </VStack>
-              ) : (
-                <Text color="gray.500">Select a lead to compose a message</Text>
-              )}
-            </Card>
-          </Box>
-        </HStack>
+          </HStack>
+        </Card>
       </Box>
+
+      <Grid templateColumns="repeat(2, 1fr)" gap={6} px={6}>
+        <Card>
+          <VStack align="stretch" spacing={6}>
+            <Text fontWeight="semibold" fontSize="lg">
+              Select Lead
+            </Text>
+            
+            {isLoading ? (
+              <Spinner />
+            ) : (
+              <List spacing={3}>
+                {leads.map((lead) => (
+                  <ListItem
+                    key={lead.id}
+                    onClick={() => handleLeadSelect(lead)}
+                    cursor="pointer"
+                    p={3}
+                    borderRadius="md"
+                    border="1px solid"
+                    borderColor={selectedLead?.id === lead.id ? 'blue.200' : 'gray.200'}
+                    bg={selectedLead?.id === lead.id ? 'blue.50' : 'white'}
+                    _hover={{ borderColor: 'blue.200' }}
+                  >
+                    <VStack align="stretch" spacing={1}>
+                      <HStack justify="space-between">
+                        <Text fontWeight="medium">
+                          {lead.first_name} {lead.last_name}
+                        </Text>
+                        {lead.in_sandbox ? (
+                          <Badge colorScheme="green">Sandbox Active</Badge>
+                        ) : (
+                          <Badge colorScheme="yellow">Not in Sandbox</Badge>
+                        )}
+                      </HStack>
+                      <Text fontSize="sm" color="gray.600">
+                        {lead.phone_number}
+                      </Text>
+                    </VStack>
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </VStack>
+        </Card>
+
+        <Card p={6}>
+          {selectedLead ? (
+            <VStack align="stretch" spacing={4}>
+              <Text fontWeight="semibold">
+                Compose Message for {selectedLead.first_name}
+              </Text>
+              <FormControl>
+                <FormLabel>Message</FormLabel>
+                <Textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Enter your message..."
+                  rows={6}
+                  isDisabled={isGenerating}
+                />
+              </FormControl>
+
+              <HStack spacing={4}>
+                <Button
+                  leftIcon={<FiSend />}
+                  colorScheme="blue"
+                  onClick={() => sendWhatsApp()}
+                  isLoading={isSending}
+                >
+                  Send Now
+                </Button>
+
+                <Popover>
+                  <PopoverTrigger>
+                    <Button leftIcon={<FiCalendar />}>
+                      Schedule
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent p={4}>
+                    <PopoverBody>
+                      <VStack spacing={4}>
+                        <FormControl>
+                          <FormLabel>Select Date and Time</FormLabel>
+                          <DatePicker
+                            selected={scheduleDate}
+                            onChange={setScheduleDate}
+                            showTimeSelect
+                            dateFormat="MMMM d, yyyy h:mm aa"
+                            minDate={new Date()}
+                            customInput={
+                              <Input />
+                            }
+                          />
+                        </FormControl>
+                        <Button
+                          colorScheme="blue"
+                          w="full"
+                          onClick={() => sendWhatsApp(scheduleDate.toISOString())}
+                          isDisabled={!scheduleDate}
+                        >
+                          Schedule Message
+                        </Button>
+                      </VStack>
+                    </PopoverBody>
+                  </PopoverContent>
+                </Popover>
+
+                <Button
+                  leftIcon={<FiEdit2 />}
+                  variant="ghost"
+                  onClick={() => generateMessageDraft(selectedLead)}
+                  isLoading={isGenerating}
+                >
+                  Regenerate
+                </Button>
+              </HStack>
+            </VStack>
+          ) : (
+            <Text color="gray.500">Select a lead to compose a message</Text>
+          )}
+        </Card>
+      </Grid>
     </PageContainer>
   )
 }

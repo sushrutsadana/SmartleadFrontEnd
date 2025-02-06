@@ -91,6 +91,10 @@ function SendEmails() {
   const generateEmailDraft = async (lead) => {
     setIsGenerating(true)
     try {
+      // Add loading text
+      setEmailBody('Generating personalized email...\n\n✨ AI is crafting your message')
+      setEmailSubject('Generating subject...')
+
       console.log('Starting email generation for lead:', lead)
 
       // Fetch lead activities
@@ -162,62 +166,71 @@ function SendEmails() {
         }
       })
 
-      const responseText = response.data.choices[0]?.message?.content
-      console.log('Raw response:', responseText)
-
+      let responseText = response.data.choices[0]?.message?.content || ''
+      
       // Clean up the response text
-      const cleanedText = responseText
-        .replace(/<think>[\s\S]*?<\/think>/g, '') // Remove thinking blocks
-        .replace(/```json\s*/g, '')  // Remove JSON code block markers
-        .replace(/```\s*/g, '')      // Remove any remaining code block markers
-        .trim()
-
-      // Find the JSON object
-      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No valid JSON found in response');
-      }
-
-      const jsonString = jsonMatch[0];
-      console.log('Extracted JSON:', jsonString);
-
       try {
-        const emailData = JSON.parse(jsonString);
-        
+        // Remove any markdown or extra text
+        responseText = responseText
+          .replace(/```json/g, '')
+          .replace(/```/g, '')
+          .trim()
+
+        // Ensure it starts with { and ends with }
+        responseText = responseText
+          .replace(/^[\s\S]*?{/, '{')
+          .replace(/}[\s\S]*$/, '}')
+          .trim()
+
+        const emailData = JSON.parse(responseText)
+
         // Validate required fields
-        if (!emailData.subject || typeof emailData.subject !== 'string') {
-          throw new Error('Invalid or missing subject');
-        }
-        if (!emailData.body || typeof emailData.body !== 'string') {
-          throw new Error('Invalid or missing body');
-        }
-        if (!emailData.signature || typeof emailData.signature !== 'string') {
-          throw new Error('Invalid or missing signature');
+        if (!emailData.subject || !emailData.body || !emailData.signature) {
+          throw new Error('Missing required email fields')
         }
 
-        setEmailSubject(emailData.subject);
-        setEmailBody(`${emailData.body}\n\n${emailData.signature}`);
+        // Add default signature if missing or invalid
+        const defaultSignature = "Best regards,\nChris Evans\nSales Development Representative\nSmartLead CRM\nsmartleadplatform@gmail.com"
+        
+        if (!emailData.signature.includes('SmartLead CRM')) {
+          emailData.signature = defaultSignature
+        }
+
+        setEmailSubject(emailData.subject)
+        setEmailBody(`${emailData.body}\n\n${emailData.signature}`)
+
       } catch (parseError) {
-        console.error('Parsing error:', {
-          error: parseError,
-          rawResponse: responseText,
-          cleanedText,
-          jsonString
-        });
-        throw new Error(`Failed to parse email data: ${parseError.message}`);
+        console.error('Error parsing AI response:', parseError)
+        
+        // Fallback content
+        setEmailSubject(`Following up - ${lead.first_name}`)
+        setEmailBody(`Hi ${lead.first_name},\n\nI hope this email finds you well. I wanted to follow up regarding SmartLead CRM and how we can help optimize your lead generation process.\n\nWould you be available for a quick call this week?\n\nBest regards,\nChris Evans\nSales Development Representative\nSmartLead CRM\nsmartleadplatform@gmail.com`)
+        
+        toast({
+          title: 'Using fallback email template',
+          description: 'The AI-generated email had formatting issues. Using a standard template instead.',
+          status: 'warning',
+          duration: 5000,
+          isClosable: true,
+        })
       }
 
     } catch (error) {
-      console.error('Email generation error:', error);
+      console.error('Email generation error:', error)
       toast({
         title: 'Error generating email',
-        description: error.message,
+        description: 'Failed to generate email. Please try again or use manual input.',
         status: 'error',
         duration: 5000,
         isClosable: true,
-      });
+      })
+
+      // Set fallback content
+      setEmailSubject(`Following up - ${lead.first_name}`)
+      setEmailBody(`Hi ${lead.first_name},\n\nI hope this email finds you well. I wanted to follow up regarding SmartLead CRM and how we can help optimize your lead generation process.\n\nWould you be available for a quick call this week?\n\nBest regards,\nChris Evans\nSales Development Representative\nSmartLead CRM\nsmartleadplatform@gmail.com`)
+
     } finally {
-      setIsGenerating(false);
+      setIsGenerating(false)
     }
   }
 

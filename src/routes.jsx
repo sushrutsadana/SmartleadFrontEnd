@@ -82,7 +82,7 @@ export const router = createBrowserRouter([
         element: <MakeCall />,
       },
       {
-        path: '/leads/:id',
+        path: '/lead/:id',
         element: <LeadCard />,
       },
       {

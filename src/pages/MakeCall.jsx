@@ -120,6 +120,9 @@ function MakeCall() {
   const generateScript = async (lead) => {
     setIsGenerating(true)
     try {
+      // Add this loading text
+      setScript('Generating personalized call script...\n\n✨ AI is crafting your script')
+
       // First fetch recent activities
       const { data: activities } = await supabase
         .from('activities')
