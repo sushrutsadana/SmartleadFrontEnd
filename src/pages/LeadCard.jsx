@@ -29,7 +29,15 @@ import {
   Grid,
   FormControl,
   FormLabel,
-  Center
+  Center,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  Textarea
 } from '@chakra-ui/react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
@@ -44,7 +52,8 @@ import {
   FiX,
   FiStar,
   FiAlertCircle,
-  FiEdit2
+  FiEdit2,
+  FiPlus
 } from 'react-icons/fi'
 import axios from 'axios'
 import PageHeader from '../components/PageHeader'
@@ -74,6 +83,11 @@ function LeadCard() {
     company_name: '',
     phone_number: '',
   })
+  const [isAddingActivity, setIsAddingActivity] = useState(false)
+  const [newActivity, setNewActivity] = useState({
+    activity_type: 'note',
+    body: '',
+  })
 
   const statusOptions = [
     { value: 'new', label: 'New' },
@@ -81,6 +95,15 @@ function LeadCard() {
     { value: 'qualified', label: 'Qualified' },
     { value: 'lost', label: 'Lost' },
     { value: 'won', label: 'Won' },
+  ]
+
+  const activityTypes = [
+    { value: 'note', label: 'Note' },
+    { value: 'email_sent', label: 'Email Sent' },
+    { value: 'call_made', label: 'Call Made' },
+    { value: 'whatsapp_sent', label: 'WhatsApp Sent' },
+    { value: 'meeting_scheduled', label: 'Meeting Scheduled' },
+    { value: 'status_change', label: 'Status Change' }
   ]
 
   useEffect(() => {
@@ -365,6 +388,66 @@ function LeadCard() {
     })
   }
 
+  // Add this function to create a new activity
+  const createActivity = async () => {
+    try {
+      if (!newActivity.body.trim()) {
+        toast({
+          title: 'Error',
+          description: 'Activity details cannot be empty',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        })
+        return
+      }
+
+      setIsUpdating(true)
+      
+      const { error } = await supabase
+        .from('activities')
+        .insert([
+          {
+            lead_id: id,
+            activity_type: newActivity.activity_type,
+            body: newActivity.body,
+            activity_datetime: new Date().toISOString()
+          }
+        ])
+
+      if (error) throw error
+
+      toast({
+        title: 'Activity Added',
+        description: 'The activity has been added successfully',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      })
+
+      // Reset form and close modal
+      setNewActivity({
+        activity_type: 'note',
+        body: '',
+      })
+      setIsAddingActivity(false)
+      
+      // Refresh activities
+      fetchActivities()
+    } catch (error) {
+      console.error('Error adding activity:', error)
+      toast({
+        title: 'Error',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
   if (loading) {
     return <Box p={6}>Loading...</Box>
   }
@@ -640,7 +723,17 @@ function LeadCard() {
 
                 {/* Lead Activity */}
                 <Box>
-                  <Heading size="sm" mb={4} color="brand.teal">Lead Activity</Heading>
+                  <HStack justify="space-between" mb={4}>
+                    <Heading size="sm" color="brand.teal">Lead Activity</Heading>
+                    <Button
+                      size="sm"
+                      colorScheme="blue"
+                      leftIcon={<FiPlus />}
+                      onClick={() => setIsAddingActivity(true)}
+                    >
+                      Add Activity
+                    </Button>
+                  </HStack>
                   <VStack spacing={3} align="stretch">
                     {loadingActivities ? (
                       <Box textAlign="center" py={4}>
@@ -762,6 +855,55 @@ function LeadCard() {
               </AlertDialogContent>
             </AlertDialogOverlay>
           </AlertDialog>
+
+          {/* Add Activity Modal */}
+          <Modal isOpen={isAddingActivity} onClose={() => setIsAddingActivity(false)}>
+            <ModalOverlay />
+            <ModalContent>
+              <ModalHeader>Add New Activity</ModalHeader>
+              <ModalCloseButton />
+              <ModalBody>
+                <VStack spacing={4}>
+                  <FormControl>
+                    <FormLabel>Activity Type</FormLabel>
+                    <Select
+                      value={newActivity.activity_type}
+                      onChange={(e) => setNewActivity({...newActivity, activity_type: e.target.value})}
+                    >
+                      {activityTypes.map(type => (
+                        <option key={type.value} value={type.value}>
+                          {type.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  
+                  <FormControl>
+                    <FormLabel>Activity Details</FormLabel>
+                    <Textarea
+                      value={newActivity.body}
+                      onChange={(e) => setNewActivity({...newActivity, body: e.target.value})}
+                      placeholder="Enter activity details..."
+                      rows={4}
+                    />
+                  </FormControl>
+                </VStack>
+              </ModalBody>
+
+              <ModalFooter>
+                <Button variant="ghost" mr={3} onClick={() => setIsAddingActivity(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  colorScheme="blue" 
+                  onClick={createActivity}
+                  isLoading={isUpdating}
+                >
+                  Add Activity
+                </Button>
+              </ModalFooter>
+            </ModalContent>
+          </Modal>
         </Box>
       </CardComponent>
     </PageContainer>
