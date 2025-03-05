@@ -33,6 +33,7 @@ import { brandColors, spacing, typography } from '../theme/constants'
 import PageContainer from '../components/PageContainer'
 import { useLocation } from 'react-router-dom'
 import { CALENDLY_LINK, CTA_MESSAGES } from '../config/constants'
+import { sendEmailToLead } from '../components/EmailProcessor'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -45,6 +46,7 @@ const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
 function SendEmails() {
   const [leads, setLeads] = useState([])
   const [selectedLead, setSelectedLead] = useState(null)
+  const [selectedLeads, setSelectedLeads] = useState([])
   const [emailBody, setEmailBody] = useState('')
   const [emailSubject, setEmailSubject] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -52,6 +54,7 @@ function SendEmails() {
   const [isSending, setIsSending] = useState(false)
   const [scheduleDate, setScheduleDate] = useState(null)
   const [selectedStatus, setSelectedStatus] = useState('all')
+  const [progress, setProgress] = useState(0)
   const toast = useToast()
   const location = useLocation()
 
@@ -239,86 +242,159 @@ function SendEmails() {
     }
   }
 
-  const handleLeadSelect = async (lead) => {
-    setSelectedLead(lead)
-    await generateEmailDraft(lead)
+  const toggleLeadSelection = (lead) => {
+    setSelectedLeads(prevSelected => {
+      // Check if this lead is already selected
+      const isAlreadySelected = prevSelected.some(l => l.id === lead.id);
+      
+      if (isAlreadySelected) {
+        // Remove lead if already selected
+        return prevSelected.filter(l => l.id !== lead.id);
+      } else {
+        // Add lead if not selected
+        return [...prevSelected, lead];
+      }
+    });
   }
 
-  const sendEmail = async (scheduleTime = null) => {
-    setIsSending(true)
-    try {
-      if (!selectedLead?.id) {
-        throw new Error('No lead selected')
-      }
+  const handleLeadSelect = async (lead) => {
+    // Set the primary selected lead for email draft generation
+    setSelectedLead(lead);
+    
+    // Replace all previously selected leads with just this one
+    setSelectedLeads([lead]);
+    
+    await generateEmailDraft(lead);
+  }
 
-      // Ensure we have a clean base URL without trailing slash
-      const baseUrl = 'https://smartlead-python-six.vercel.app'
+  const sendEmail = async () => {
+    // If we're in the compose view with a single lead selected
+    if (selectedLead) {
+      // Use only the currently selected lead
+      setIsSending(true);
       
-      // Note the hyphen in 'send-email' instead of underscore
-      const url = `${baseUrl}/leads/${selectedLead.id}/send-email`
-      
-      console.log('Selected Lead ID:', selectedLead.id)
-      console.log('Request URL:', url)
-
-      const requestBody = {
-        subject: emailSubject,
-        body: emailBody,
-        cc: null,
-        bcc: null
-      }
-
-      console.log('Request body:', requestBody)
-
-      const response = await axios({
-        method: 'POST',
-        url: url,
-        data: requestBody,
-        headers: {
-          'Content-Type': 'application/json'
+      try {
+        console.log(`Sending email to ${selectedLead.email} using direct Gmail API`);
+        
+        // Send to the currently viewed lead only
+        const result = await sendEmailToLead(selectedLead, {
+          subject: emailSubject,
+          body: emailBody
+        });
+        
+        if (result.success) {
+          toast({
+            title: 'Email Sent',
+            description: `Email successfully sent to ${selectedLead.first_name} ${selectedLead.last_name}.`,
+            status: 'success',
+            duration: 5000,
+            isClosable: true,
+          });
+          
+          // Clear the form
+          setEmailSubject('');
+          setEmailBody('');
+          setSelectedLead(null);
+          setSelectedLeads([]);
+        } else {
+          throw new Error(result.error || 'Failed to send email');
         }
-      })
-
-      console.log('Send email response:', response)
-
-      if (response.data) {
+      } catch (error) {
+        console.error('Error sending email:', error);
         toast({
-          title: 'Email Sent',
-          description: 'Email has been sent successfully',
-          status: 'success',
+          title: 'Error',
+          description: error.message || 'Failed to send email',
+          status: 'error',
           duration: 5000,
           isClosable: true,
-        })
-
-        // Reset form
-        setSelectedLead(null)
-        setEmailBody('')
-        setEmailSubject('')
-        setScheduleDate(null)
+        });
+      } finally {
+        setIsSending(false);
       }
-    } catch (error) {
-      console.error('Send email error:', {
-        error: error.message,
-        response: error.response?.data,
-        leadId: selectedLead?.id,
-        requestBody: {
-          subject: emailSubject,
-          body: emailBody,
-          cc: null,
-          bcc: null
-        }
-      })
-
+      return;
+    }
+    
+    // The rest of the multi-send function can remain for bulk emails
+    if (selectedLeads.length === 0) {
       toast({
-        title: 'Error sending email',
-        description: error.response?.data?.detail || error.message,
+        title: 'No leads selected',
+        description: 'Please select at least one lead to send an email to.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!emailSubject || !emailBody) {
+      toast({
+        title: 'Missing content',
+        description: 'Please enter an email subject and body.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setIsSending(true);
+    setProgress(0);
+
+    try {
+      let successful = 0;
+      const total = selectedLeads.length;
+
+      // Process each lead one by one
+      for (let i = 0; i < total; i++) {
+        const lead = selectedLeads[i];
+        try {
+          console.log(`Sending email to ${lead.email} using direct Gmail API`);
+          
+          // Use our direct Gmail API implementation
+          const result = await sendEmailToLead(lead, {
+            subject: emailSubject,
+            body: emailBody
+          });
+          
+          if (result.success) {
+            successful++;
+          } else {
+            console.error(`Failed to send email to ${lead.email}:`, result.error);
+          }
+        } catch (err) {
+          console.error(`Error sending to ${lead.email}:`, err);
+        }
+        
+        // Update progress
+        setProgress(Math.round(((i + 1) / total) * 100));
+      }
+
+      // Show results
+      toast({
+        title: 'Email sending complete',
+        description: `Successfully sent ${successful} of ${total} emails.`,
+        status: successful > 0 ? 'success' : 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      
+      // Clear selections after sending
+      setSelectedLeads([]);
+      
+    } catch (error) {
+      console.error('Error sending emails:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'An error occurred while sending emails',
         status: 'error',
         duration: 5000,
         isClosable: true,
-      })
+      });
     } finally {
-      setIsSending(false)
+      setIsSending(false);
+      setProgress(0);
     }
-  }
+  };
 
   // Add the status color helper function
   const getStatusColor = (status) => {
@@ -474,16 +550,13 @@ function SendEmails() {
               <HStack justify="space-between" pt={8}>
                 <HStack spacing={4}>
                   <Button
-                    leftIcon={<FiSend />}
                     colorScheme="blue"
-                    size="lg"
-                    onClick={() => sendEmail()}
+                    onClick={sendEmail}
                     isLoading={isSending}
-                    px={8}
-                    h="56px"
-                    fontSize="md"
+                    loadingText={`Sending ${progress}%`}
+                    leftIcon={<FiSend />}
                   >
-                    Send Now
+                    Send Now {selectedLeads.length > 0 ? `(${selectedLeads.length})` : ''}
                   </Button>
 
                   <Popover placement="top">

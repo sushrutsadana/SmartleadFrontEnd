@@ -5,7 +5,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
-    host: true
+    host: true,
+    hmr: true,
+    headers: {
+      'Cache-Control': 'no-store'
+    }
   },
   build: {
     outDir: 'dist',

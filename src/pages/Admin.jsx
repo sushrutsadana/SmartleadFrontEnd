@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   Box, VStack, Text, Button, Textarea, useToast,
   Accordion, AccordionItem, AccordionButton, AccordionPanel, AccordionIcon,
-  HStack, Icon, SimpleGrid, Badge, Divider, useClipboard
+  HStack, Icon, SimpleGrid, Badge, Divider, useClipboard, Heading
 } from '@chakra-ui/react'
 import { FiMail, FiEdit2, FiCopy, FiCheckCircle, FiMessageSquare, FiPhone } from 'react-icons/fi'
 import { SiGmail } from 'react-icons/si'
@@ -10,6 +10,7 @@ import PageContainer from '../components/PageContainer'
 import PageHeader from '../components/PageHeader'
 import Card from '../components/Card'
 import { getPrompt, savePrompt, resetPrompt, DEFAULT_PROMPTS_LIST } from '../utils/prompts'
+import GmailConnector from '../components/GmailConnector'
 
 function Admin() {
   const [prompts, setPrompts] = useState({
@@ -30,6 +31,16 @@ function Admin() {
       email: getPrompt('email')
     })
   }, [])
+
+  useEffect(() => {
+    // Check Gmail Connection on admin page load
+    const checkConnections = async () => {
+      // Add code to check Gmail connection status
+      // You can call a function similar to checkGmailConnection here
+    };
+    
+    checkConnections();
+  }, []);
 
   const handleSave = (type) => {
     savePrompt(type, prompts[type])
@@ -246,6 +257,17 @@ function Admin() {
               ))}
             </Accordion>
           </VStack>
+        </Card>
+
+        <Card>
+          <Box p={6}>
+            <Heading size="md" mb={4}>Email Integration</Heading>
+            <Text mb={6}>
+              Connect your email accounts to automatically process incoming leads and send emails directly from the CRM.
+            </Text>
+            
+            <GmailConnector />
+          </Box>
         </Card>
       </SimpleGrid>
     </PageContainer>
