@@ -3,7 +3,7 @@ import { Box, Heading, List, ListItem, Text, Tag, Button, HStack, VStack, useToa
 import { supabase } from '../supabaseClient';
 import { sendEmailToLead } from './EmailProcessor';
 
-function PendingAutoReplies() {
+function PendingAutoreplies() {
   const [pendingReplies, setPendingReplies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const toast = useToast();
@@ -165,4 +165,4 @@ function PendingAutoReplies() {
   );
 }
 
-export default PendingAutoReplies; 
+export default PendingAutoreplies; 
