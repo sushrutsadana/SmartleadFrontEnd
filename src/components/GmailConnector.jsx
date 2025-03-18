@@ -65,7 +65,7 @@ function GmailConnector() {
       ].join(' ');
 
       // Use exact redirect URI that matches Google Console
-      const redirectUri = encodeURIComponent(`${window.location.origin}/admin/gmail-callback`);
+      const redirectUri = encodeURIComponent('https://smartlead-front-end.vercel.app/admin/gmail-callback');
       const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
       const state = encodeURIComponent(window.location.pathname);
       
