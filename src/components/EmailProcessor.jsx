@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Button, Text, VStack, useToast, Switch, HStack, Icon, Card, Heading, FormControl, FormLabel } from '@chakra-ui/react';
 import { FiRefreshCw } from 'react-icons/fi';
 import { supabase } from '../supabaseClient';
+import { generateAutoReply } from '../utils/autoReplyGenerator';
 
 // Create a browser-compatible base64 encoder for email
 const createEmailRFC822 = (from, to, subject, body) => {
@@ -190,6 +191,48 @@ export const sendEmailToLead = async (lead, emailContent) => {
       success: false, 
       error: error.message || 'Failed to send email'
     };
+  }
+};
+
+export const scheduleAutoReply = async (email) => {
+  try {
+    const senderEmail = email.from.match(/<([^>]+)>/) 
+      ? email.from.match(/<([^>]+)>/)[1] 
+      : email.from;
+    
+    // Get lead info if it exists
+    const { data: lead } = await supabase
+      .from('leads')
+      .select('id, first_name, last_name, company_name')
+      .eq('email', senderEmail)
+      .single();
+    
+    // Generate auto-reply content using LLM
+    const autoReplyText = await generateAutoReply(email, lead);
+    
+    // Schedule the auto-reply for 5 minutes from now
+    const scheduledTime = new Date();
+    scheduledTime.setMinutes(scheduledTime.getMinutes() + 5);
+    
+    // Store in pending_autoreplies table
+    const { data, error } = await supabase
+      .from('pending_autoreplies')
+      .insert([{
+        lead_id: lead?.id || null,
+        original_email_id: email.id || email.threadId,
+        subject: `Re: ${email.subject}`,
+        from_email: senderEmail,
+        response_text: autoReplyText,
+        scheduled_time: scheduledTime.toISOString(),
+        sent: false
+      }]);
+    
+    if (error) throw error;
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error scheduling auto-reply:', error);
+    return { success: false, error };
   }
 };
 

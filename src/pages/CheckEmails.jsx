@@ -25,8 +25,9 @@ import PageHeader from '../components/PageHeader'
 import PageContainer from '../components/PageContainer'
 import Card from '../components/Card'
 import axios from 'axios'
-import EmailProcessor from '../components/EmailProcessor'
+import EmailProcessor, { scheduleAutoReply } from '../components/EmailProcessor'
 import { supabase } from '../supabaseClient'
+import PendingAutoReplies from '../components/PendingAutoreplies'
 
 const supabaseClient = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -548,6 +549,18 @@ function CheckEmails() {
           isClosable: true,
         });
       }
+
+      // Schedule auto-reply
+      await scheduleAutoReply(email);
+      
+      // Display toast notification
+      toast({
+        title: 'Auto-reply scheduled',
+        description: 'An auto-reply will be sent in 5 minutes',
+        status: 'info',
+        duration: 3000,
+        isClosable: true,
+      });
     } catch (error) {
       console.error('Error processing email:', error);
       toast({
@@ -699,6 +712,7 @@ function CheckEmails() {
 
       <VStack spacing={6} align="stretch">
         <EmailProcessor onProcessComplete={processEmails} />
+        <PendingAutoReplies />
 
         <Card>
           <Box p={6}>
