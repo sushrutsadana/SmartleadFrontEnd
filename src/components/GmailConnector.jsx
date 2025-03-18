@@ -3,6 +3,7 @@ import { Box, Button, Text, VStack, HStack, Icon, useToast } from '@chakra-ui/re
 import { FiMail, FiCheck } from 'react-icons/fi';
 import axios from 'axios';
 import { supabase } from '../supabaseClient';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // Gmail API scopes we need
 const SCOPES = [
@@ -17,19 +18,21 @@ function GmailConnector() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const toast = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Check if Gmail is already connected
   useEffect(() => {
     checkGmailConnection();
     
     // Check for OAuth callback
-    const urlParams = new URLSearchParams(window.location.search);
+    const urlParams = new URLSearchParams(location.search);
     const code = urlParams.get('code');
     if (code) {
-      console.log('Received OAuth code, processing...'); // Debug log
+      console.log('Received OAuth code:', code.substring(0, 10) + '...'); // Debug log but don't show full code
       handleOAuthCallback(code);
     }
-  }, []);
+  }, [location]); // Add location as dependency
 
   const checkGmailConnection = async () => {
     try {
@@ -63,23 +66,20 @@ function GmailConnector() {
         'https://www.googleapis.com/auth/userinfo.profile'
       ].join(' ');
 
-      // Use window.location.origin to handle both dev and prod
-      const redirectUri = encodeURIComponent(`${window.location.origin}/admin/gmail-callback`);
-      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-      const state = encodeURIComponent(window.location.pathname);
-      
-      const authUrl = 
-        `https://accounts.google.com/o/oauth2/v2/auth?` +
-        `client_id=${clientId}&` +
-        `redirect_uri=${redirectUri}&` +
-        `response_type=code&` +
-        `access_type=offline&` +
-        `prompt=consent%20select_account&` +
-        `scope=${encodeURIComponent(SCOPES)}&` +
-        `state=${state}`;
+      const redirectUri = window.location.origin + '/admin/gmail-callback';
+      console.log('Initiating with redirect URI:', redirectUri);
 
-      console.log('Auth URL:', authUrl); // For debugging
-      window.location.href = authUrl;
+      const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+      authUrl.searchParams.append('client_id', import.meta.env.VITE_GOOGLE_CLIENT_ID);
+      authUrl.searchParams.append('redirect_uri', redirectUri);
+      authUrl.searchParams.append('response_type', 'code');
+      authUrl.searchParams.append('access_type', 'offline');
+      authUrl.searchParams.append('prompt', 'consent');
+      authUrl.searchParams.append('scope', SCOPES);
+      authUrl.searchParams.append('state', location.pathname);
+
+      console.log('Auth URL:', authUrl.toString());
+      window.location.href = authUrl.toString();
     } catch (error) {
       console.error('Error initiating Gmail connection:', error);
       setIsConnecting(false);
@@ -95,11 +95,9 @@ function GmailConnector() {
 
   const handleOAuthCallback = async (code) => {
     try {
-      // Use the same redirect URI as in connectGmail
-      const redirectUri = `${window.location.origin}/admin/gmail-callback`;
-      console.log('Using redirect URI:', redirectUri); // Debug log
-      
-      // Exchange code for token
+      const redirectUri = window.location.origin + '/admin/gmail-callback';
+      console.log('Using redirect URI:', redirectUri);
+
       const tokenResponse = await axios.post(
         'https://oauth2.googleapis.com/token',
         {
@@ -109,10 +107,9 @@ function GmailConnector() {
           redirect_uri: redirectUri,
           grant_type: 'authorization_code'
         }
-      ).catch(error => {
-        console.error('Token exchange error:', error.response?.data || error);
-        throw error;
-      });
+      );
+
+      console.log('Token response received'); // Debug log
 
       if (!tokenResponse.data?.access_token) {
         throw new Error('Invalid token response from Google');
@@ -154,19 +151,20 @@ function GmailConnector() {
         duration: 5000,
         isClosable: true,
       });
+
+      // Use navigate instead of window.location
+      navigate('/admin', { replace: true });
     } catch (error) {
-      console.error('Error handling OAuth callback:', error);
+      console.error('Full error:', error);
+      console.error('Response data:', error.response?.data);
       toast({
         title: 'Connection Failed',
-        description: error.message || 'Failed to complete Gmail connection',
+        description: error.response?.data?.error_description || error.message || 'Failed to complete Gmail connection',
         status: 'error',
         duration: 5000,
         isClosable: true,
       });
-    } finally {
-      setIsConnecting(false);
-      // Redirect back to admin page after processing
-      window.location.href = '/admin';
+      navigate('/admin', { replace: true });
     }
   };
 

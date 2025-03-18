@@ -9,6 +9,7 @@ import MakeCall from './pages/MakeCall'
 import CreateLead from './pages/CreateLead'
 import { ChakraProvider } from '@chakra-ui/react'
 import theme from './theme'
+import GmailConnector from './components/GmailConnector'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -86,6 +87,7 @@ function App() {
                   <Route path="/emails" element={<CheckEmails />} />
                   <Route path="/calls" element={<MakeCall />} />
                   <Route path="/leads/new" element={<CreateLead />} />
+                  <Route path="/admin/gmail-callback" element={<GmailConnector />} />
                 </Routes>
               </VStack>
             </Box>
