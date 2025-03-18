@@ -27,7 +27,7 @@ import Card from '../components/Card'
 import axios from 'axios'
 import EmailProcessor, { scheduleAutoReply } from '../components/EmailProcessor'
 import { supabase } from '../supabaseClient'
-import PendingAutoreplies from '../components/PendingAutoreplies'
+import EmailReplies from '../components/EmailReplies'
 
 const supabaseClient = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -712,7 +712,7 @@ function CheckEmails() {
 
       <VStack spacing={6} align="stretch">
         <EmailProcessor onProcessComplete={processEmails} />
-        <PendingAutoreplies />
+        <EmailReplies />
 
         <Card>
           <Box p={6}>
