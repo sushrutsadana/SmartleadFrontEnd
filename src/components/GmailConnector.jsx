@@ -26,9 +26,8 @@ function GmailConnector() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     if (code) {
+      console.log('Received OAuth code, processing...'); // Debug log
       handleOAuthCallback(code);
-      // Clean up URL
-      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
 
@@ -64,8 +63,8 @@ function GmailConnector() {
         'https://www.googleapis.com/auth/userinfo.profile'
       ].join(' ');
 
-      // Use exact redirect URI that matches Google Console
-      const redirectUri = encodeURIComponent('https://smartlead-front-end.vercel.app/admin/gmail-callback');
+      // Use window.location.origin to handle both dev and prod
+      const redirectUri = encodeURIComponent(`${window.location.origin}/admin/gmail-callback`);
       const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
       const state = encodeURIComponent(window.location.pathname);
       
@@ -98,6 +97,7 @@ function GmailConnector() {
     try {
       // Use the same redirect URI as in connectGmail
       const redirectUri = `${window.location.origin}/admin/gmail-callback`;
+      console.log('Using redirect URI:', redirectUri); // Debug log
       
       // Exchange code for token
       const tokenResponse = await axios.post(
@@ -109,7 +109,10 @@ function GmailConnector() {
           redirect_uri: redirectUri,
           grant_type: 'authorization_code'
         }
-      );
+      ).catch(error => {
+        console.error('Token exchange error:', error.response?.data || error);
+        throw error;
+      });
 
       if (!tokenResponse.data?.access_token) {
         throw new Error('Invalid token response from Google');
@@ -162,6 +165,8 @@ function GmailConnector() {
       });
     } finally {
       setIsConnecting(false);
+      // Redirect back to admin page after processing
+      window.location.href = '/admin';
     }
   };
 
