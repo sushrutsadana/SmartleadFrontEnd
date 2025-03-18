@@ -100,134 +100,40 @@ function CheckEmails() {
     setErrorMessage('');
     
     try {
-      // Get Gmail credentials
-      const { data: credentials, error } = await supabaseClient
+      // 1. Check if Gmail is connected
+      const { data: credentials, error: credError } = await supabase
         .from('gmail_credentials')
-        .select('email, access_token, expires_at, refresh_token')
-        .order('created_at', { ascending: false })
+        .select('*')
         .limit(1);
       
-      if (error) throw error;
+      if (credError) throw credError;
       
       if (!credentials || credentials.length === 0) {
-        setErrorMessage('No Gmail account connected. Please connect your Gmail account in the Admin settings.');
-        setIsLoading(false);
-        return;
+        throw new Error('No Gmail account connected. Please connect Gmail in Admin settings.');
       }
       
-      let accessToken = credentials[0].access_token;
-      const email = credentials[0].email;
+      console.log('Gmail credentials found:', credentials[0].email);
       
-      // Refresh token regardless of expiration
-      try {
-        accessToken = await refreshAccessToken(email);
-        console.log('Token refreshed successfully');
-      } catch (refreshError) {
-        console.error('Failed to refresh token:', refreshError);
-        setErrorMessage('Your Gmail session has expired. Please reconnect your account in Admin settings.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Use the Gmail API directly to fetch emails
-      const response = await fetch(
-        `https://www.googleapis.com/gmail/v1/users/me/messages?q=in:inbox -category:promotions -category:social -label:spam newer_than:1d`,
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          }
+      // 2. Fetch emails from backend
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/emails?limit=10`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
         }
-      );
-
+      });
+      
       if (!response.ok) {
-        throw new Error(`Gmail API error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`Error fetching emails: ${response.status} ${errorText}`);
       }
-
+      
       const data = await response.json();
+      console.log('Emails fetched:', data);
+      setEmails(data.emails || []);
       
-      if (!data.messages || data.messages.length === 0) {
-        setEmails([]);
-        return;
-      }
-
-      // Fetch each email's full details
-      const emailPromises = data.messages.slice(0, 10).map(async (message) => {
-        const msgResponse = await fetch(
-          `https://www.googleapis.com/gmail/v1/users/me/messages/${message.id}?format=full`,
-          {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-        
-        if (!msgResponse.ok) {
-          console.error(`Error fetching message ${message.id}: ${msgResponse.status}`);
-          return null;
-        }
-        
-        return await msgResponse.json();
-      });
-      
-      const emailsData = await Promise.all(emailPromises);
-      const validEmails = emailsData.filter(email => email !== null);
-      
-      // Process these emails and display them
-      const processedEmails = validEmails.map(email => {
-        // Extract email fields
-        const subject = email.payload.headers.find(h => h.name === 'Subject')?.value || 'No Subject';
-        const from = email.payload.headers.find(h => h.name === 'From')?.value || 'Unknown Sender';
-        const date = email.payload.headers.find(h => h.name === 'Date')?.value;
-        
-        // Extract body - handle different MIME types
-        let body = '';
-        if (email.payload.parts && email.payload.parts.length) {
-          // Find text part
-          const textPart = email.payload.parts.find(part => 
-            part.mimeType === 'text/plain' || part.mimeType === 'text/html'
-          );
-          
-          if (textPart && textPart.body.data) {
-            // Base64 decode the body
-            body = atob(textPart.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-            if (textPart.mimeType === 'text/html') {
-              // Strip HTML tags for display
-              body = body.replace(/<[^>]*>/g, ' ');
-            }
-          }
-        } else if (email.payload.body && email.payload.body.data) {
-          body = atob(email.payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-        }
-        
-        return {
-          id: email.id,
-          threadId: email.threadId,
-          subject,
-          from,
-          body: body.substring(0, 500) + (body.length > 500 ? '...' : ''),
-          received_at: date || new Date(parseInt(email.internalDate)).toISOString(),
-          labelIds: email.labelIds || []
-        };
-      });
-      
-      setEmails(processedEmails);
-      
-      // Also get leads to display in Generated Leads section
-      const { data: leadsData, error: leadsError } = await supabaseClient
-        .from('leads')
-        .select('*')
-        .eq('lead_source', 'email')
-        .order('created_at', { ascending: false })
-        .limit(10);
-      
-      if (!leadsError && leadsData) {
-        setLeads(leadsData);
-      }
-    } catch (error) {
-      console.error('Error in main fetch flow:', error);
-      setErrorMessage(typeof error.message === 'string' ? error.message : 'An unknown error occurred');
+    } catch (err) {
+      console.error('Error fetching emails:', err);
+      setErrorMessage(err.message);
     } finally {
       setIsLoading(false);
     }

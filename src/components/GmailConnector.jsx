@@ -235,6 +235,40 @@ function GmailConnector() {
     }
   };
 
+  const testGmailConnection = async () => {
+    try {
+      setIsConnecting(true);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/test-gmail-connection`, {
+        method: 'GET',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to connect to Gmail: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      toast({
+        title: 'Gmail Connection Test',
+        description: data.message || 'Connection successful!',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Gmail connection test failed:', error);
+      toast({
+        title: 'Connection Test Failed',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
   return (
     <Box 
       p={6} 
