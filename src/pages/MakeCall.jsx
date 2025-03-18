@@ -196,7 +196,7 @@ Do not include any other text, markdown, or formatting - ONLY the JSON object.`
     }
   }
 
-  const initiateCall = async (scheduleTime = null) => {
+  const initiateCall = async () => {
     if (!selectedLead?.id || !script) {
       toast({
         title: 'Error',
@@ -217,8 +217,8 @@ Do not include any other text, markdown, or formatting - ONLY the JSON object.`
         voice: callSettings.voice
       }
 
-      if (scheduleTime) {
-        callPayload.scheduled_time = scheduleTime
+      if (scheduleDate) {
+        callPayload.scheduled_time = scheduleDate.toISOString()
       }
 
       console.log('Making call with payload:', callPayload)
@@ -237,8 +237,8 @@ Do not include any other text, markdown, or formatting - ONLY the JSON object.`
 
       if (response.data) {
         toast({
-          title: scheduleTime ? 'Call Scheduled' : 'Call Initiated',
-          description: scheduleTime ? 
+          title: scheduleDate ? 'Call Scheduled' : 'Call Initiated',
+          description: scheduleDate ? 
             'Call has been scheduled successfully' : 
             'Call has been initiated successfully',
           status: 'success',
@@ -246,26 +246,33 @@ Do not include any other text, markdown, or formatting - ONLY the JSON object.`
           isClosable: true,
         })
 
-        // Create activity for the call
-        try {
-          const { error: activityError } = await supabase
-            .from('activities')
-            .insert([{
-              activity_type: 'call_initiated',
-              activity_datetime: new Date().toISOString(),
-              lead_id: selectedLead.id,
-              body: `Automated call ${scheduleTime ? 'scheduled' : 'initiated'}`,
-              metadata: {
-                prompt: script,
-                voice: callSettings.voice,
-                language: callSettings.language,
-                scheduled_time: scheduleTime
-              }
-            }])
+        // Record the call activity
+        const { error: activityError } = await supabase
+          .from('activities')
+          .insert([{
+            lead_id: selectedLead.id,
+            activity_type: 'Call Made',
+            body: scheduleDate 
+              ? `Scheduled call with ${selectedLead.first_name} ${selectedLead.last_name || ''} for ${scheduleDate.toLocaleString()}`
+              : `Call initiated with ${selectedLead.first_name} ${selectedLead.last_name || ''} using voice: ${callSettings.voice}`
+          }]);
 
-          if (activityError) throw activityError
-        } catch (activityError) {
-          console.error('Error creating call activity:', activityError)
+        if (activityError) {
+          console.error('Error creating call activity:', activityError);
+          throw activityError;
+        }
+
+        // Update lead status if needed
+        const { error: updateError } = await supabase
+          .from('leads')
+          .update({ 
+            status: 'contacted'
+          })
+          .eq('id', selectedLead.id);
+
+        if (updateError) {
+          console.error('Error updating lead status:', updateError);
+          throw updateError;
         }
 
         // Reset form after successful call

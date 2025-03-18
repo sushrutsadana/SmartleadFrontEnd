@@ -140,25 +140,55 @@ export const sendEmailToLead = async (lead, emailContent) => {
       const errorText = await response.text();
       throw new Error(`Gmail API error (${response.status}): ${errorText}`);
     }
-    
-    // Record the email activity
-    await supabase
-      .from('activities')
-      .insert([{
-        lead_id: lead.id,
-        activity_type: 'email_sent',
-        body: `Email sent: ${content.subject}`,
-      }]);
-    
-    return { 
-      success: true, 
-      message: 'Email sent successfully via Gmail'
-    };
+
+    // If email was sent successfully, update the lead and create activity
+    try {
+      // First update the lead status - removing fields that don't exist in schema
+      const { error: updateError } = await supabase
+        .from('leads')
+        .update({ 
+          status: 'contacted',
+          // Remove last_contacted_at and updated_at since they don't exist in schema
+        })
+        .eq('id', lead.id);
+
+      if (updateError) {
+        console.error('Error updating lead status:', updateError);
+        throw updateError;
+      }
+
+      // Then create the activity record
+      const { error: activityError } = await supabase
+        .from('activities')
+        .insert([{
+          lead_id: lead.id,
+          activity_type: 'email_sent',
+          body: `Email sent: ${content.subject}`
+        }]);
+
+      if (activityError) {
+        console.error('Error creating activity:', activityError);
+        throw activityError;
+      }
+
+      return { 
+        success: true, 
+        message: 'Email sent successfully and records updated'
+      };
+    } catch (dbError) {
+      console.error('Database update error:', dbError);
+      // Still return success since email was sent
+      return {
+        success: true,
+        message: 'Email sent but failed to update records',
+        error: dbError.message
+      };
+    }
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Error in sendEmailToLead:', error);
     return { 
       success: false, 
-      error: error.message || 'Failed to send email' 
+      error: error.message || 'Failed to send email'
     };
   }
 };
