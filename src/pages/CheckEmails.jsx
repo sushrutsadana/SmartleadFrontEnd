@@ -26,8 +26,9 @@ import PageContainer from '../components/PageContainer'
 import Card from '../components/Card'
 import axios from 'axios'
 import EmailProcessor from '../components/EmailProcessor'
+import { supabase } from '../supabaseClient'
 
-const supabase = createClient(
+const supabaseClient = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_KEY
 )
@@ -52,7 +53,7 @@ function CheckEmails() {
 
   const refreshAccessToken = async (email) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('gmail_credentials')
         .select('refresh_token')
         .eq('email', email)
@@ -77,7 +78,7 @@ function CheckEmails() {
         throw new Error('Failed to refresh access token')
       }
       
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseClient
         .from('gmail_credentials')
         .update({
           access_token: tokenResponse.data.access_token,
@@ -100,7 +101,7 @@ function CheckEmails() {
     
     try {
       // Get Gmail credentials
-      const { data: credentials, error } = await supabase
+      const { data: credentials, error } = await supabaseClient
         .from('gmail_credentials')
         .select('email, access_token, expires_at, refresh_token')
         .order('created_at', { ascending: false })
@@ -130,7 +131,7 @@ function CheckEmails() {
 
       // Use the Gmail API directly to fetch emails
       const response = await fetch(
-        `https://www.googleapis.com/gmail/v1/users/me/messages?q=in:inbox&maxResults=15`,
+        `https://www.googleapis.com/gmail/v1/users/me/messages?q=in:inbox -category:promotions -category:social -label:spam newer_than:1d`,
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -214,7 +215,7 @@ function CheckEmails() {
       setEmails(processedEmails);
       
       // Also get leads to display in Generated Leads section
-      const { data: leadsData, error: leadsError } = await supabase
+      const { data: leadsData, error: leadsError } = await supabaseClient
         .from('leads')
         .select('*')
         .eq('lead_source', 'email')
@@ -237,7 +238,7 @@ function CheckEmails() {
     
     try {
       // Get the most recent Gmail credentials
-      const { data: credentials, error } = await supabase
+      const { data: credentials, error } = await supabaseClient
         .from('gmail_credentials')
         .select('email, access_token, expires_at, refresh_token')
         .order('created_at', { ascending: false })
@@ -262,7 +263,7 @@ function CheckEmails() {
 
       // Use the Gmail API directly to fetch emails
       const response = await fetch(
-        `https://www.googleapis.com/gmail/v1/users/me/messages?q=is:unread in:inbox&maxResults=10`,
+        `https://www.googleapis.com/gmail/v1/users/me/messages?q=in:inbox -category:promotions -category:social -label:spam newer_than:1d`,
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -378,7 +379,7 @@ function CheckEmails() {
             }
             
             // Check if lead with this email already exists
-            const { data: existingLeads, error: checkError } = await supabase
+            const { data: existingLeads, error: checkError } = await supabaseClient
               .from('leads')
               .select('id, email')
               .eq('email', senderEmail)
@@ -451,7 +452,7 @@ function CheckEmails() {
             }
             
             // Insert lead
-            const { data: newLead, error: insertError } = await supabase
+            const { data: newLead, error: insertError } = await supabaseClient
               .from('leads')
               .insert([lead])
               .select();
@@ -480,7 +481,7 @@ function CheckEmails() {
         await fetchEmails();
         
         // Also add this to explicitly refresh the leads after processing
-        const { data: newLeadsData, error: newLeadsError } = await supabase
+        const { data: newLeadsData, error: newLeadsError } = await supabaseClient
           .from('leads')
           .select('*')
           .eq('lead_source', 'email')
@@ -575,70 +576,77 @@ function CheckEmails() {
         senderEmail = email.from.trim();
       }
       
-      // Check if lead with this email already exists
-      const { data: existingLeads, error: checkError } = await supabase
+      // Check if lead exists
+      const { data: existingLead, error: checkError } = await supabase
         .from('leads')
         .select('id, email')
         .eq('email', senderEmail)
-        .limit(1);
+        .single();
       
-      if (checkError) {
+      if (checkError && checkError.code !== 'PGRST116') { // Not found error code
         console.error('Error checking for existing lead:', checkError);
-      } else if (existingLeads && existingLeads.length > 0) {
+        throw checkError;
+      }
+
+      let leadId;
+      
+      if (existingLead) {
+        leadId = existingLead.id;
         toast({
           title: 'Lead Already Exists',
-          description: `A lead with email ${senderEmail} already exists.`,
+          description: `Recording email activity for ${senderEmail}`,
           status: 'info',
           duration: 3000,
           isClosable: true,
         });
-        return;
+      } else {
+        // Create new lead
+        const lead = {
+          lead_source: 'email',
+          created_at: new Date().toISOString(),
+          first_name: senderName.split(' ')[0] || 'Unknown',
+          last_name: senderName.split(' ').length > 1 ? 
+            senderName.split(' ').slice(1).join(' ') : '',
+          email: senderEmail,
+          status: 'new'
+        };
+        
+        const { data: newLead, error: insertError } = await supabase
+          .from('leads')
+          .insert([lead])
+          .select();
+        
+        if (insertError) throw insertError;
+        leadId = newLead[0].id;
       }
-      
-      // Create lead without the notes field
-      const lead = {
-        lead_source: 'email',
-        created_at: new Date().toISOString(),
-        first_name: senderName.split(' ')[0] || 'Unknown',
-        last_name: senderName.split(' ').length > 1 ? 
-          senderName.split(' ').slice(1).join(' ') : '',
-        email: senderEmail,
-        status: 'new'
-      };
-      
-      const { data: newLead, error: insertError } = await supabase
-        .from('leads')
-        .insert([lead])
-        .select();
-      
-      if (insertError) {
-        throw insertError;
-      }
+
+      // Create activity record in either case
+      await supabase
+        .from('activities')
+        .insert([{
+          lead_id: leadId,
+          activity_type: 'email_received',
+          activity_datetime: email.received_at || new Date().toISOString(),
+          body: `Email received: ${email.subject}\n\n${email.body.substring(0, 500)}...`
+        }]);
       
       // Refresh leads list
-      const { data: leadsData, error: leadsError } = await supabase
-        .from('leads')
-        .select('*')
-        .eq('lead_source', 'email')
-        .order('created_at', { ascending: false })
-        .limit(10);
+      await fetchEmails();
       
-      if (!leadsError && leadsData) {
-        setLeads(leadsData);
+      if (!existingLead) {
+        toast({
+          title: 'Lead Created',
+          description: `Created lead from: ${senderName}`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
       }
-      
-      toast({
-        title: 'Lead Created',
-        description: `Created lead from: ${senderName}`,
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
     } catch (error) {
-      console.error('Error creating lead:', error);
+      console.error('Error processing email:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create lead from email',
+        description: error.message || 'Failed to process email',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -653,7 +661,7 @@ function CheckEmails() {
     
     if (window.confirm('Are you sure you want to delete this lead? This action cannot be undone.')) {
       try {
-        const { error } = await supabase
+        const { error } = await supabaseClient
           .from('leads')
           .delete()
           .eq('id', leadId);
@@ -683,6 +691,86 @@ function CheckEmails() {
     }
   };
 
+  const handleEmailsProcessed = async (emails) => {
+    let newLeadsCount = 0;
+    
+    for (const email of emails) {
+      try {
+        // Extract sender info
+        const from = email.from;
+        const matches = from.match(/<(.+?)>/) || [null, from];
+        const emailAddress = matches[1];
+        const name = from.replace(/<.*?>/, '').trim();
+        const [firstName, ...lastNameParts] = name.split(' ');
+        const lastName = lastNameParts.join(' ');
+
+        // Check if lead exists
+        const { data: existingLead } = await supabase
+          .from('leads')
+          .select('id')
+          .eq('email', emailAddress)
+          .single();
+
+        if (!existingLead) {
+          // Create new lead
+          const { data: newLead, error: leadError } = await supabase
+            .from('leads')
+            .insert([{
+              first_name: firstName,
+              last_name: lastName,
+              email: emailAddress,
+              status: 'new',
+              lead_source: 'email',
+              created_at: new Date().toISOString()
+            }])
+            .select()
+            .single();
+
+          if (leadError) throw leadError;
+
+          // Create activity
+          await supabase
+            .from('activities')
+            .insert([{
+              lead_id: newLead.id,
+              activity_type: 'email_received',
+              activity_datetime: email.date || new Date().toISOString(),
+              body: `Email received: ${email.subject}\n\n${email.body.substring(0, 500)}...`
+            }]);
+
+          newLeadsCount++;
+        }
+      } catch (error) {
+        console.error('Error creating lead from email:', error);
+      }
+    }
+
+    // Update UI
+    fetchEmails(); // Refresh the emails list
+    
+    toast({
+      title: 'Emails Processed',
+      description: `Created ${newLeadsCount} new leads`,
+      status: 'success',
+      duration: 5000,
+      isClosable: true,
+    });
+  };
+
+  // Add this function to check if a lead exists
+  const checkIfLeadExists = async (email) => {
+    const emailMatch = email.from.match(/<([^>]+)>/) || [null, email.from];
+    const emailAddress = emailMatch[1];
+    
+    const { data } = await supabase
+      .from('leads')
+      .select('id')
+      .eq('email', emailAddress)
+      .single();
+      
+    return !!data;
+  };
+
   if (isLoading) {
     return (
       <PageContainer>
@@ -699,132 +787,90 @@ function CheckEmails() {
   return (
     <PageContainer>
       <PageHeader
-        title="Process New Emails"
+        title="Check Emails"
         description="Check and process new email leads"
       />
 
-      <VStack spacing={8} align="stretch">
+      <VStack spacing={6} align="stretch">
+        <EmailProcessor onProcessComplete={processEmails} />
+
         <Card>
-          <VStack spacing={6} align="stretch">
-            <Text>
-              This will check your connected email accounts for new leads and automatically process them into your database.
-            </Text>
-
-            <HStack justify="space-between">
-              <Button
-                leftIcon={<FiRefreshCw />}
-                colorScheme="blue"
-                onClick={processEmails}
-                isLoading={isProcessing}
-              >
-                Process Emails
-              </Button>
-
-              <FormControl display="flex" alignItems="center" maxW="300px">
-                <FormLabel htmlFor="auto-process" mb="0">
-                  Auto-process daily
-                </FormLabel>
-                <Switch
-                  id="auto-process"
-                  isChecked={autoProcess}
-                  onChange={handleAutoProcessToggle}
-                />
-              </FormControl>
+          <Box p={6}>
+            <HStack justify="space-between" mb={4}>
+              <Heading size="md">Received Emails</Heading>
+              <Text color="gray.500" fontSize="sm">
+                {emails.length} emails found
+              </Text>
             </HStack>
-          </VStack>
-        </Card>
 
-        {/* Email Activities */}
-        <Card>
-          <VStack align="stretch" spacing={4}>
-            <Text fontWeight="bold" fontSize="lg">Received Emails</Text>
-            
             {isLoading ? (
-              <Box textAlign="center" py={8}>
-                <Spinner size="xl" color="blue.500" />
-                <Text mt={4}>Loading emails...</Text>
-              </Box>
-            ) : errorMessage ? (
-              <Box 
-                p={4} 
-                borderRadius="md" 
-                borderWidth="1px" 
-                borderColor="red.200"
-                bg="red.50"
-              >
-                <Text color="red.500">{errorMessage}</Text>
-                <Button mt={3} onClick={fetchEmails} colorScheme="blue" size="sm">
-                  Try Again
-                </Button>
-              </Box>
+              <Center py={8}>
+                <Spinner size="lg" color="blue.500" />
+              </Center>
             ) : emails.length === 0 ? (
               <Box 
-                p={6} 
-                borderRadius="md" 
-                borderWidth="1px" 
-                borderColor="gray.200"
-                bg="gray.50"
-                textAlign="center"
+                py={8} 
+                textAlign="center" 
+                bg="gray.50" 
+                borderRadius="md"
               >
-                <Icon as={FiMail} boxSize={10} color="gray.400" />
-                <Text mt={2} fontWeight="medium">No emails found</Text>
-                <Text fontSize="sm" color="gray.500">
-                  There are no emails to display or all emails have been processed.
-                </Text>
-                <Button mt={4} onClick={fetchEmails} colorScheme="blue" size="sm">
-                  Refresh
-                </Button>
+                <Icon as={FiMail} boxSize={8} color="gray.400" mb={3} />
+                <Text color="gray.600">No new emails to process</Text>
               </Box>
             ) : (
-              <VStack spacing={4} align="stretch">
-                {emails.map((email, index) => (
-                  <Box 
-                    key={index}
+              <List spacing={4}>
+                {emails.map((email) => (
+                  <ListItem
+                    key={email.id}
                     p={4}
-                    borderRadius="md"
                     borderWidth="1px"
+                    borderRadius="md"
                     borderColor="gray.200"
-                    _hover={{ borderColor: 'blue.300', shadow: 'sm' }}
+                    _hover={{ bg: 'gray.50' }}
                   >
-                    <HStack spacing={2} mb={2}>
-                      <Icon as={FiMail} color="blue.500" />
-                      <Text fontWeight="bold">
-                        {email.subject || 'No Subject'}
+                    <VStack align="stretch" spacing={2}>
+                      <HStack justify="space-between">
+                        <HStack>
+                          <Icon as={FiMail} color="blue.500" />
+                          <Text fontWeight="medium">
+                            {email.subject}
+                          </Text>
+                        </HStack>
+                        
+                        <Button
+                          size="sm"
+                          colorScheme="blue"
+                          variant="outline"
+                          leftIcon={<Icon as={FiUser} />}
+                          onClick={() => createLeadFromEmail(email)}
+                          isLoading={isProcessing}
+                        >
+                          Create Lead
+                        </Button>
+                      </HStack>
+
+                      <HStack spacing={4} color="gray.600" fontSize="sm">
+                        <Text>From: {email.from}</Text>
+                        <Text>•</Text>
+                        <Text>{new Date(email.received_at).toLocaleString()}</Text>
+                      </HStack>
+
+                      <Text 
+                        fontSize="sm" 
+                        color="gray.700" 
+                        noOfLines={3}
+                        whiteSpace="pre-wrap"
+                      >
+                        {email.body}
                       </Text>
-                    </HStack>
-                    
-                    <HStack spacing={2} mb={2} color="gray.600">
-                      <Text fontSize="sm" fontWeight="medium">From:</Text>
-                      <Text fontSize="sm">{email.from || 'Unknown Sender'}</Text>
-                    </HStack>
-                    
-                    <Box 
-                      p={3} 
-                      bg="gray.50" 
-                      borderRadius="md" 
-                      fontSize="sm"
-                      mb={2}
-                      maxHeight="200px"
-                      overflowY="auto"
-                    >
-                      {email.body || 'No content provided. This email may only contain HTML content or attachments.'}
-                    </Box>
-                    
-                    <Box fontSize="xs" color="gray.500">
-                      <Text>{formatDate(email.received_at)}</Text>
-                    </Box>
-                  </Box>
+                    </VStack>
+                  </ListItem>
                 ))}
-                
-                <Button onClick={fetchEmails} colorScheme="blue" size="sm" alignSelf="flex-start">
-                  Refresh Emails
-                </Button>
-              </VStack>
+              </List>
             )}
-          </VStack>
+          </Box>
         </Card>
 
-        {/* Generated Leads */}
         <Card>
           <VStack align="stretch" spacing={4}>
             <Text fontWeight="bold" fontSize="lg">Generated Leads</Text>

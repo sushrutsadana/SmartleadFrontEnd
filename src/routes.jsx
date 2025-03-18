@@ -16,6 +16,7 @@ import SearchSocial from './pages/SearchSocial'
 import Admin from './pages/Admin'
 import Meetings from './pages/Meetings'
 import Reports from './pages/Reports'
+import GmailCallback from './pages/GmailCallback'
 
 const ProtectedRoute = ({ children }) => {
   const [session, setSession] = useState(null)
@@ -114,6 +115,10 @@ export const router = createBrowserRouter([
       {
         path: '/reports',
         element: <Reports />
+      },
+      {
+        path: '/admin/gmail-callback',
+        element: <GmailCallback />
       }
     ]
   }

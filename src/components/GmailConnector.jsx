@@ -34,227 +34,129 @@ function GmailConnector() {
 
   const checkGmailConnection = async () => {
     try {
-      // Check if we have gmail credentials stored
       const { data: credentials, error } = await supabase
         .from('gmail_credentials')
-        .select('email, expires_at, refresh_token')
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .select('email')
+        .single();
       
-      if (error) throw error;
-      
-      if (credentials && credentials.length > 0) {
-        // Even if token is expired, we can still set connected state
-        // We'll refresh the token when needed for API calls
-        setIsConnected(true);
-        setUserEmail(credentials[0].email || '');
-        
-        // Optionally try to refresh the token in the background
-        try {
-          if (credentials[0].refresh_token) {
-            const expiresAt = new Date(credentials[0].expires_at);
-            const now = new Date();
-            
-            // If token is expired or will expire in the next 5 minutes, refresh it
-            if (expiresAt <= new Date(now.getTime() + 5 * 60 * 1000)) {
-              await refreshAccessToken(credentials[0].email, credentials[0].refresh_token);
-              console.log('Token refreshed in background during connection check');
-            }
-          }
-        } catch (refreshError) {
-          console.warn('Background token refresh failed:', refreshError);
-          // Don't disconnect the user yet - we'll try again when needed
-        }
+      if (error) {
+        console.log('No Gmail connection found');
+        return;
       }
+      
+      setIsConnected(true);
+      setUserEmail(credentials.email);
     } catch (error) {
       console.error('Error checking Gmail connection:', error);
     }
   };
 
-  const connectGmail = () => {
+  const connectGmail = async () => {
     setIsConnecting(true);
     
     try {
-      // Use a redirect URI that matches what's in your Google Cloud Console
-      let redirectUri;
-      
-      if (window.location.hostname === 'localhost') {
-        redirectUri = 'http://localhost:3000/admin';
-      } else {
-        // Use your production URL - based on your Google Cloud Console settings
-        redirectUri = 'https://smartlead-front-end.vercel.app/admin';
-      }
-      
-      const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-      
-      // Make sure to include these specific scopes for user info
-      const scopes = [
-        ...SCOPES,
+      const SCOPES = [
+        'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/gmail.send',
+        'https://www.googleapis.com/auth/gmail.labels',
+        'https://www.googleapis.com/auth/gmail.modify',
         'https://www.googleapis.com/auth/userinfo.email',
-        'https://www.googleapis.com/auth/userinfo.profile',
-        'openid',
-        'email',
-        'profile'
-      ];
+        'https://www.googleapis.com/auth/userinfo.profile'
+      ].join(' ');
+
+      // Use exact redirect URI that matches Google Console
+      const redirectUri = encodeURIComponent(`${window.location.origin}/admin/gmail-callback`);
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      const state = encodeURIComponent(window.location.pathname);
       
-      // Generate a random state value to prevent CSRF attacks
-      const state = Math.random().toString(36).substring(2, 15);
-      sessionStorage.setItem('gmailOAuthState', state);
-      
-      // Add OAuth parameters
-      authUrl.searchParams.append('client_id', import.meta.env.VITE_GOOGLE_CLIENT_ID);
-      authUrl.searchParams.append('redirect_uri', redirectUri);
-      authUrl.searchParams.append('response_type', 'code');
-      authUrl.searchParams.append('scope', scopes.join(' '));
-      authUrl.searchParams.append('access_type', 'offline');
-      authUrl.searchParams.append('prompt', 'consent');  // Always get refresh token
-      authUrl.searchParams.append('state', state);
-      
-      // Redirect to Google OAuth
-      window.location.href = authUrl.toString();
+      const authUrl = 
+        `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${clientId}&` +
+        `redirect_uri=${redirectUri}&` +
+        `response_type=code&` +
+        `access_type=offline&` +
+        `prompt=consent%20select_account&` +
+        `scope=${encodeURIComponent(SCOPES)}&` +
+        `state=${state}`;
+
+      console.log('Auth URL:', authUrl); // For debugging
+      window.location.href = authUrl;
     } catch (error) {
-      console.error('Error connecting Gmail:', error);
+      console.error('Error initiating Gmail connection:', error);
+      setIsConnecting(false);
       toast({
-        title: "Failed to connect Gmail",
-        description: typeof error.message === 'string' ? error.message : "Please try again",
-        status: "error",
+        title: 'Connection Failed',
+        description: error.message || 'Failed to initiate Gmail connection',
+        status: 'error',
         duration: 5000,
         isClosable: true,
       });
-      setIsConnecting(false);
     }
   };
 
   const handleOAuthCallback = async (code) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('You must be logged in to connect Gmail');
-      }
-
-      let redirectUri;
+      // Use the same redirect URI as in connectGmail
+      const redirectUri = `${window.location.origin}/admin/gmail-callback`;
       
-      if (window.location.hostname === 'localhost') {
-        redirectUri = 'http://localhost:3000/admin';
-      } else {
-        redirectUri = 'https://smartlead-front-end.vercel.app/admin';
-      }
-      
-      const backendUrl = 'https://smartlead-python-six.vercel.app';
-
       // Exchange code for token
       const tokenResponse = await axios.post(
         'https://oauth2.googleapis.com/token',
         {
-          code: code,
+          code,
           client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
           client_secret: import.meta.env.VITE_GOOGLE_CLIENT_SECRET,
           redirect_uri: redirectUri,
           grant_type: 'authorization_code'
         }
       );
-      
-      if (!tokenResponse.data || !tokenResponse.data.access_token) {
+
+      if (!tokenResponse.data?.access_token) {
         throw new Error('Invalid token response from Google');
       }
-      
-      const accessToken = tokenResponse.data.access_token;
-      console.log('Got access token, length:', accessToken.length);
-      
-      // Get user info - explicitly build the authorization header
-      const userInfoResponse = await axios({
-        method: 'GET',
-        url: 'https://www.googleapis.com/oauth2/v2/userinfo',
-        headers: {
-          'Authorization': 'Bearer ' + accessToken
+
+      // Get user info
+      const userInfoResponse = await axios.get(
+        'https://www.googleapis.com/oauth2/v2/userinfo',
+        {
+          headers: {
+            Authorization: `Bearer ${tokenResponse.data.access_token}`
+          }
         }
-      });
-      
-      if (!userInfoResponse.data || !userInfoResponse.data.email) {
+      );
+
+      if (!userInfoResponse.data?.email) {
         throw new Error('Failed to get user info from Google');
       }
-      
-      const userEmail = userInfoResponse.data.email;
-      console.log('Got user email:', userEmail);
-      
-      // Before inserting into Supabase
-      const { data: existingCredentials } = await supabase
-        .from('gmail_credentials')
-        .select('id')
-        .eq('email', userEmail)
-        .limit(1);
 
-      if (existingCredentials && existingCredentials.length > 0) {
-        // Update existing record instead of inserting
-        const { error } = await supabase
-          .from('gmail_credentials')
-          .update({
-            access_token: tokenResponse.data.access_token,
-            refresh_token: tokenResponse.data.refresh_token,
-            expires_at: new Date(Date.now() + tokenResponse.data.expires_in * 1000).toISOString()
-          })
-          .eq('email', userEmail);
-          
-        if (error) {
-          console.error('Supabase update error:', error);
-          throw new Error(`Failed to update credentials: ${error.message}`);
-        }
-      } else {
-        // Insert new record
-        const { error } = await supabase
-          .from('gmail_credentials')
-          .insert({
-            email: userEmail,
-            access_token: tokenResponse.data.access_token,
-            refresh_token: tokenResponse.data.refresh_token,
-            expires_at: new Date(Date.now() + tokenResponse.data.expires_in * 1000).toISOString()
-          });
-          
-        if (error) {
-          console.error('Supabase insert error:', error);
-          throw new Error(`Failed to save credentials: ${error.message}`);
-        }
-      }
-      
+      // Store in Supabase
+      const { error: supabaseError } = await supabase
+        .from('gmail_credentials')
+        .upsert({
+          email: userInfoResponse.data.email,
+          access_token: tokenResponse.data.access_token,
+          refresh_token: tokenResponse.data.refresh_token,
+          expires_at: new Date(Date.now() + tokenResponse.data.expires_in * 1000).toISOString()
+        });
+
+      if (supabaseError) throw supabaseError;
+
       setIsConnected(true);
-      setUserEmail(userEmail);
-      
+      setUserEmail(userInfoResponse.data.email);
+
       toast({
-        title: "Gmail connected",
-        description: `Connected to ${userEmail}`,
-        status: "success",
-        duration: 3000,
+        title: 'Gmail Connected',
+        description: 'Successfully connected your Gmail account',
+        status: 'success',
+        duration: 5000,
         isClosable: true,
       });
-      
-      // Optional: Still notify your backend that OAuth succeeded
-      try {
-        await axios.post(
-          `${backendUrl}/settings/gmail-connected`,
-          { email: userEmail },
-          { headers: { 'Content-Type': 'application/json' } }
-        );
-      } catch (backendError) {
-        console.warn('Failed to notify backend of successful connection:', backendError);
-        // Continue anyway, this is optional
-      }
     } catch (error) {
       console.error('Error handling OAuth callback:', error);
-      
-      if (error.response) {
-        console.error('Response status:', error.response.status);
-        console.error('Response headers:', error.response.headers);
-      }
-      
-      let errorMessage = "Failed to connect Gmail. Please try again.";
-      if (typeof error.message === 'string') {
-        errorMessage = error.message;
-      }
-      
       toast({
-        title: "Gmail Connection Failed",
-        description: errorMessage,
-        status: "error",
+        title: 'Connection Failed',
+        description: error.message || 'Failed to complete Gmail connection',
+        status: 'error',
         duration: 5000,
         isClosable: true,
       });
@@ -265,42 +167,30 @@ function GmailConnector() {
 
   const disconnectGmail = async () => {
     try {
-      // Explicitly use the backend URL
-      const backendUrl = 'https://smartlead-python-six.vercel.app';
-      
-      // Call the disconnect endpoint
-      await axios.post(`${backendUrl}/settings/gmail-disconnect`);
-      
-      // Delete from Supabase
-      const { error } = await supabase
-        .from('gmail_credentials')
-        .delete()
-        .eq('email', userEmail);
-      
-      if (error) throw error;
-      
-      // Update state
-      setIsConnected(false);
-      setUserEmail('');
-      
-      toast({
-        title: "Gmail disconnected",
-        status: "info",
-        duration: 3000,
-        isClosable: true,
-      });
+      // Make request to backend
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/settings/gmail-disconnect`,
+        { email: userEmail }
+      );
+
+      if (response.data.success) {
+        setIsConnected(false);
+        setUserEmail('');
+        
+        toast({
+          title: 'Gmail Disconnected',
+          description: 'Your Gmail account has been disconnected successfully.',
+          status: 'success',
+          duration: 5000,
+          isClosable: true,
+        });
+      }
     } catch (error) {
       console.error('Error disconnecting Gmail:', error);
-      
-      // Ensure error message is a string
-      const errorMessage = typeof error.message === 'string' 
-        ? error.message 
-        : "Please try again";
-      
       toast({
-        title: "Failed to disconnect Gmail",
-        description: errorMessage,
-        status: "error",
+        title: 'Disconnection Failed',
+        description: error.response?.data?.detail || 'Failed to disconnect Gmail account',
+        status: 'error',
         duration: 5000,
         isClosable: true,
       });
